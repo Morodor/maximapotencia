@@ -1,0 +1,8 @@
+{
+  "appId": "com.maximapotencia.app",
+  "appName": "Máxima Potencia",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

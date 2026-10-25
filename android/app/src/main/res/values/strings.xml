@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Máxima Potencia</string>
+    <string name="title_activity_main">Máxima Potencia</string>
+    <string name="package_name">com.maximapotencia.app</string>
+    <string name="custom_url_scheme">com.maximapotencia.app</string>
+</resources>

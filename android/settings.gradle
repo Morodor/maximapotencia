@@ -1,0 +1,26 @@
+import javax.net.ssl.*
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+
+try {
+    TrustManager[] trustAllCerts = [
+        new X509TrustManager() {
+            public X509Certificate[] getAcceptedIssuers() { return null; }
+            public void checkClientTrusted(X509Certificate[] certs, String authType) { }
+            public void checkServerTrusted(X509Certificate[] certs, String authType) { }
+        }
+    ] as TrustManager[]
+
+    SSLContext sc = SSLContext.getInstance("SSL")
+    sc.init(null, trustAllCerts, new SecureRandom())
+    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+    HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+        public boolean verify(String hostname, SSLSession session) { return true; }
+    })
+} catch (Exception e) {}
+
+include ':app'
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
+
+apply from: 'capacitor.settings.gradle'

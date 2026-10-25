@@ -1,0 +1,90 @@
+import React from 'react';
+import { useApp } from '../../context/AppContext';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Dumbbell, 
+  TrendingUp, 
+  Zap, 
+  CalendarPlus, 
+  BarChart2, 
+  History, 
+  Wrench, 
+  Trophy, 
+  Youtube, 
+  HelpCircle, 
+  Settings 
+} from 'lucide-react';
+
+export const navItems = [
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, subtitle: 'Resumen del rendimiento de tu equipo.' },
+  { id: 'athletes', name: 'Atletas', icon: Users, subtitle: 'Gestiona y sigue el progreso de tus atletas.' },
+  { id: 'exercises', name: 'Ejercicios', icon: Dumbbell, subtitle: 'Gestiona tu biblioteca de ejercicios.' },
+  { id: '1rm', name: '1RM', icon: TrendingUp, subtitle: 'Calcula y registra tus récords de 1RM.' },
+  { id: 'power', name: 'Potencia', icon: Zap, subtitle: 'Monitoriza las métricas de potencia y velocidad.' },
+  { id: 'sessions', name: 'Sesiones', icon: CalendarPlus, subtitle: 'Registra y planifica sesiones de entrenamiento.' },
+  { id: 'analysis', name: 'Análisis', icon: BarChart2, subtitle: 'Visualiza perfiles de rendimiento y VBT.' },
+  { id: 'history', name: 'Historial', icon: History, subtitle: 'Explora el historial completo de datos.' },
+  { id: 'utilities', name: 'Utilidades', icon: Wrench, subtitle: 'Herramientas y calculadoras de gimnasio.' },
+  { id: 'achievements', name: 'Logros', icon: Trophy, subtitle: 'Visualiza hitos y récords alcanzados.' },
+  { id: 'guide', name: 'Guía', icon: HelpCircle, subtitle: 'Cómo usar esta aplicación.' },
+  { id: 'settings', name: 'Ajustes', icon: Settings, subtitle: 'Configuración y copias de seguridad.' }
+];
+
+export const Sidebar = () => {
+  const { currentPanel, setCurrentPanel } = useApp();
+
+  return (
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-4">
+      <div className="flex-1 flex flex-col w-full bg-slate-800/80 backdrop-blur rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden">
+        {/* Brand */}
+        <div className="p-4 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg shadow-red-900/40 font-bold text-white text-lg tracking-wider">
+              MP
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white tracking-tight">Máxima Potencia</h1>
+              <span className="text-xs font-mono text-red-400 font-semibold">v2.0 Pro</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation list */}
+        <nav className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPanel === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentPanel(item.id)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 ${
+                  isActive
+                    ? 'bg-red-600 text-white shadow-md shadow-red-900/30 font-semibold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span>{item.name}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer Link to YouTube */}
+        <div className="p-3 border-t border-slate-700/50">
+          <a
+            href="https://www.youtube.com/@M%C3%A1ximaPotencia3000"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-red-400 hover:bg-slate-700/40 transition-colors"
+          >
+            <Youtube className="w-4 h-4 text-red-500" />
+            <span>Canal de YouTube</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+  );
+};
