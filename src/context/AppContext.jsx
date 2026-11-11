@@ -22,6 +22,7 @@ import {
 import { DEFAULT_EXERCISES_DATA } from '../data/defaultExercises';
 import { 
   CURRENT_APP_VERSION, 
+  DEFAULT_APK_URL,
   isNewerVersion, 
   downloadAndInstallUpdate 
 } from '../utils/updateManager';
@@ -545,7 +546,7 @@ export const AppProvider = ({ children }) => {
         latestVersion: latestVersion.trim(),
         releaseDate: new Date().toISOString().split('T')[0],
         releaseNotes: releaseNotes.trim(),
-        downloadUrl: downloadUrl.trim(),
+        downloadUrl: (downloadUrl && downloadUrl.trim()) || DEFAULT_APK_URL,
         mandatory: Boolean(mandatory),
         updatedAt: serverTimestamp()
       }, { merge: true });

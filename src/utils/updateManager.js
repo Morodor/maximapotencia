@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 
 export const CURRENT_APP_VERSION = "2.0.2";
 export const APP_BUILD_DATE = "2026-11-11";
+export const DEFAULT_APK_URL = "https://maximapotencia.web.app/Maxima_Potencia.apk";
 
 /**
  * Compara dos versiones semánticas (ej. "2.1.0" vs "2.0.1")

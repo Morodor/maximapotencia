@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
+import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
 
 export const SettingsView = () => {
   const { 
@@ -51,8 +52,8 @@ export const SettingsView = () => {
 
   // Estados para Publicación de Actualizaciones (Solo Head Coach)
   const [showPublisher, setShowPublisher] = useState(false);
-  const [pubVersion, setPubVersion] = useState('');
-  const [pubUrl, setPubUrl] = useState('');
+  const [pubVersion, setPubVersion] = useState(CURRENT_APP_VERSION);
+  const [pubUrl, setPubUrl] = useState(DEFAULT_APK_URL);
   const [pubNotes, setPubNotes] = useState('');
   const [pubMandatory, setPubMandatory] = useState(false);
 
@@ -66,8 +67,8 @@ export const SettingsView = () => {
 
   useEffect(() => {
     if (appUpdateInfo) {
-      setPubVersion(appUpdateInfo.latestVersion || '');
-      setPubUrl(appUpdateInfo.downloadUrl || '');
+      setPubVersion(appUpdateInfo.latestVersion || CURRENT_APP_VERSION);
+      setPubUrl(appUpdateInfo.downloadUrl || DEFAULT_APK_URL);
       setPubNotes(appUpdateInfo.releaseNotes || '');
       setPubMandatory(Boolean(appUpdateInfo.mandatory));
     }
