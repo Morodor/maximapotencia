@@ -1,44 +1,65 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { CURRENT_APP_VERSION, downloadAndInstallUpdate } from '../../utils/updateManager';
+import { CURRENT_APP_VERSION, DEFAULT_APK_URL, startNativeUpdate } from '../../utils/updateManager';
 import { 
   Rocket, 
   Download, 
   CheckCircle2, 
   X, 
   Sparkles, 
-  ExternalLink, 
   AlertCircle,
-  HelpCircle,
-  Smartphone
+  Smartphone,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 export const UpdateModal = ({ isOpen, onClose }) => {
   const { appUpdateInfo, showNotification } = useApp();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStarted, setDownloadStarted] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [downloadStats, setDownloadStats] = useState(null);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen || !appUpdateInfo) return null;
 
   const targetVersion = appUpdateInfo.latestVersion || '2.0.2';
-  const downloadUrl = appUpdateInfo.downloadUrl;
+  const downloadUrl = appUpdateInfo.downloadUrl || DEFAULT_APK_URL;
 
-  const handleDownload = async () => {
-    if (!downloadUrl) {
-      showNotification('Aún no se ha configurado el enlace de descarga directa del APK.', true);
-      return;
-    }
-
+  const handleStartUpdate = async () => {
     setIsDownloading(true);
-    setDownloadStarted(true);
+    setProgressPercent(0);
+    setErrorMessage('');
+    setStatusMessage('Conectando con el servidor...');
 
-    const ok = await downloadAndInstallUpdate(downloadUrl);
-    setIsDownloading(false);
+    const ok = await startNativeUpdate(
+      downloadUrl,
+      // Callback de progreso
+      (data) => {
+        if (data.percent !== undefined) {
+          setProgressPercent(data.percent);
+        }
+        if (data.currentBytes && data.totalBytes) {
+          const currentMb = (data.currentBytes / (1024 * 1024)).toFixed(1);
+          const totalMb = (data.totalBytes / (1024 * 1024)).toFixed(1);
+          setDownloadStats(`${currentMb} MB / ${totalMb} MB`);
+        }
+        if (data.percent === 100) {
+          setStatusMessage('¡Descarga completa! Abriendo instalador de Android...');
+        } else if (data.percent > 0) {
+          setStatusMessage(`Descargando actualización (${data.percent}%)...`);
+        }
+      },
+      // Callback de error
+      (err) => {
+        setIsDownloading(false);
+        setErrorMessage(err);
+        showNotification(err, true);
+      }
+    );
 
-    if (ok) {
-      showNotification('Descarga iniciada en tu navegador/notificaciones.');
-    } else {
-      showNotification('No se pudo abrir el enlace de descarga automáticamente.', true);
+    if (!ok) {
+      setIsDownloading(false);
     }
   };
 
@@ -51,12 +72,14 @@ export const UpdateModal = ({ isOpen, onClose }) => {
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Botón cerrar */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {!isDownloading && (
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Cabecera */}
         <div className="flex items-center gap-4">
@@ -66,7 +89,7 @@ export const UpdateModal = ({ isOpen, onClose }) => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-                Nueva Versión Disponible
+                Actualización Inmediata
               </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
@@ -91,42 +114,58 @@ export const UpdateModal = ({ isOpen, onClose }) => {
         <div className="space-y-2">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Novedades en esta actualización:</span>
+            <span>Novedades en esta versión:</span>
           </span>
           <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 leading-relaxed whitespace-pre-line max-h-40 overflow-y-auto custom-scrollbar font-sans">
-            {appUpdateInfo.releaseNotes || '• Mejoras en estabilidad y rendimiento.\n• Corrección de errores y optimización para pantallas móviles.'}
+            {appUpdateInfo.releaseNotes || '• Modificación completa de sesiones existentes.\n• Actualización automática en 1 clic.\n• Optimización de márgenes para teléfonos móviles.'}
           </div>
         </div>
 
-        {/* Botón de Descarga / Instalación */}
+        {/* Proceso de Actualización con 1 Clic */}
         <div className="space-y-3 pt-2">
-          <button
-            onClick={handleDownload}
-            disabled={isDownloading || !downloadUrl}
-            className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-white font-extrabold text-sm py-3.5 px-6 rounded-2xl shadow-xl shadow-red-950/50 transition-all active:scale-98"
-          >
-            <Download className="w-4 h-4" />
-            <span>{isDownloading ? 'Descargando APK...' : `Descargar e Instalar v${targetVersion}`}</span>
-          </button>
+          {isDownloading ? (
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-3 animate-in fade-in">
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="flex items-center gap-2 text-white">
+                  <RefreshCw className="w-4 h-4 animate-spin text-red-500" />
+                  <span>{statusMessage || 'Descargando e instalando...'}</span>
+                </span>
+                <span className="text-emerald-400 font-mono text-sm">
+                  {progressPercent >= 0 ? `${progressPercent}%` : ''}
+                </span>
+              </div>
 
-          {!downloadUrl && (
-            <p className="text-[11px] text-amber-400/90 text-center flex items-center justify-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              <span>El Head Coach aún no ha publicado el enlace directo de esta versión.</span>
-            </p>
+              {/* Barra de progreso interactiva */}
+              <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700 p-0.5">
+                <div 
+                  className="bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500 h-full rounded-full transition-all duration-150"
+                  style={{ width: `${Math.max(4, progressPercent)}%` }}
+                />
+              </div>
+
+              <div className="flex justify-between text-[11px] text-slate-400 font-mono">
+                <span>{downloadStats || 'Descargando paquete oficial...'}</span>
+                <span>Instalación automática</span>
+              </div>
+
+              <p className="text-[11px] text-amber-300/80 text-center italic pt-1">
+                Apenas termine, la pantalla de Android te pedirá confirmar "Instalar". No cierres la app.
+              </p>
+            </div>
+          ) : (
+            <button
+              onClick={handleStartUpdate}
+              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-sm py-4 px-6 rounded-2xl shadow-xl shadow-red-950/60 transition-all active:scale-98"
+            >
+              <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+              <span>Actualizar Ahora (1 Clic)</span>
+            </button>
           )}
 
-          {downloadStarted && (
-            <div className="p-3.5 rounded-2xl bg-emerald-950/20 border border-emerald-900/40 text-xs text-emerald-300 space-y-1.5 animate-in fade-in">
-              <p className="font-bold flex items-center gap-1.5">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
-                <span>¿Cómo instalar la actualización en tu teléfono?</span>
-              </p>
-              <ol className="list-decimal list-inside text-[11px] text-slate-300 space-y-1 pl-1">
-                <li>El archivo <strong>Maxima_Potencia.apk</strong> se descargará en tu barra de notificaciones.</li>
-                <li>Toca la notificación de descarga o abre tu carpeta de <em>Descargas</em>.</li>
-                <li>Presiona <strong>Instalar / Actualizar</strong>. Todos tus datos y atletas se mantendrán intactos.</li>
-              </ol>
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-red-950/30 border border-red-900/50 text-xs text-red-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
             </div>
           )}
         </div>
@@ -134,12 +173,14 @@ export const UpdateModal = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/60">
           <span>Publicado: {appUpdateInfo.releaseDate || 'Recientemente'}</span>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white font-semibold"
-          >
-            Recordar más tarde
-          </button>
+          {!isDownloading && (
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-white font-semibold"
+            >
+              Posponer
+            </button>
+          )}
         </div>
 
       </div>
