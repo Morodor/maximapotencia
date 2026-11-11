@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Settings, Download, Upload, Shield, Save, Database, Crown, Users, KeyRound, ShieldCheck } from 'lucide-react';
+import { 
+  Settings, 
+  Download, 
+  Upload, 
+  Shield, 
+  Save, 
+  Database, 
+  Crown, 
+  Users, 
+  KeyRound, 
+  ShieldCheck, 
+  Rocket, 
+  RefreshCw, 
+  Smartphone, 
+  CheckCircle2, 
+  ExternalLink, 
+  ChevronDown, 
+  ChevronUp,
+  Sparkles
+} from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 
 export const SettingsView = () => {
@@ -15,13 +34,27 @@ export const SettingsView = () => {
     currentCoach,
     isHeadCoach,
     updateCoach,
-    showNotification 
+    showNotification,
+    currentAppVersion,
+    appUpdateInfo,
+    hasUpdateAvailable,
+    publishAppUpdate,
+    checkForUpdatesManual,
+    setIsUpdateModalOpen,
+    downloadAndInstallUpdate
   } = useApp();
 
   const [coachName, setCoachName] = useState('');
   const [coachTitle, setCoachTitle] = useState('');
   const [coachPin, setCoachPin] = useState('');
   const [isManageCoachesOpen, setIsManageCoachesOpen] = useState(false);
+
+  // Estados para Publicación de Actualizaciones (Solo Head Coach)
+  const [showPublisher, setShowPublisher] = useState(false);
+  const [pubVersion, setPubVersion] = useState('');
+  const [pubUrl, setPubUrl] = useState('');
+  const [pubNotes, setPubNotes] = useState('');
+  const [pubMandatory, setPubMandatory] = useState(false);
 
   useEffect(() => {
     if (currentCoach) {
@@ -31,12 +64,32 @@ export const SettingsView = () => {
     }
   }, [currentCoach]);
 
+  useEffect(() => {
+    if (appUpdateInfo) {
+      setPubVersion(appUpdateInfo.latestVersion || '');
+      setPubUrl(appUpdateInfo.downloadUrl || '');
+      setPubNotes(appUpdateInfo.releaseNotes || '');
+      setPubMandatory(Boolean(appUpdateInfo.mandatory));
+    }
+  }, [appUpdateInfo]);
+
   const handleSaveCurrentCoach = async () => {
     if (!currentCoach?.id) return;
     await updateCoach(currentCoach.id, {
       name: coachName,
       title: coachTitle,
       pin: coachPin
+    });
+  };
+
+  const handlePublishUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!pubVersion.trim()) return;
+    await publishAppUpdate({
+      latestVersion: pubVersion,
+      downloadUrl: pubUrl,
+      releaseNotes: pubNotes,
+      mandatory: pubMandatory
     });
   };
 
@@ -190,7 +243,165 @@ export const SettingsView = () => {
         </button>
       </div>
 
-      {/* Sección 3: Gestión de Datos y Backups */}
+      {/* Sección 3: Centro de Actualizaciones del Sistema */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-5 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-red-500" />
+              <span>Actualizaciones del Sistema</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Control de versiones oficiales de Máxima Potencia para Android y tablets.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold px-3 py-1 bg-slate-800 text-slate-300 rounded-xl border border-slate-700">
+              Instalada: v{currentAppVersion}
+            </span>
+            <button
+              onClick={checkForUpdatesManual}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition-colors"
+              title="Comprobar en la nube"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Comprobar</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Estado de la Actualización */}
+        {hasUpdateAvailable ? (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 to-amber-950/40 border border-red-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-lg shadow-red-950/50 mt-0.5">
+                <Rocket className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white flex items-center gap-2">
+                  <span>¡Nueva versión oficial v{appUpdateInfo?.latestVersion} disponible!</span>
+                  <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-sans">
+                    Recomendada
+                  </span>
+                </p>
+                <p className="text-xs text-slate-300 mt-1 line-clamp-2">
+                  {appUpdateInfo?.releaseNotes?.split('\n')[0] || 'Correcciones de interfaz móvil y nuevas optimizaciones de rendimiento.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsUpdateModalOpen(true)}
+              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              <span>Instalar v{appUpdateInfo?.latestVersion}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold text-white">Tu aplicación está al día (v{currentAppVersion})</p>
+              <p className="text-slate-400 text-[11px] mt-0.5">
+                Tienes instalada la versión más reciente con todas las mejoras de visualización y análisis científico.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Panel de Publicación para Head Coach */}
+        {isHeadCoach && (
+          <div className="border-t border-slate-800/80 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowPublisher(!showPublisher)}
+              className="flex items-center justify-between w-full text-left py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                <span>Publicar Nueva Actualización para Todos los Dispositivos (Solo Head Coach)</span>
+              </span>
+              {showPublisher ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showPublisher && (
+              <form onSubmit={handlePublishUpdateSubmit} className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4 animate-in fade-in">
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Cuando compiles un nuevo APK o tengas un enlace de descarga (en Google Drive, Dropbox, Firebase Hosting o GitHub), publícalo aquí.
+                  <strong> Inmediatamente todos los móviles y tablets con la app recibirán la notificación de actualización sin necesidad de enviarles el archivo a cada uno por WhatsApp.</strong>
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1 uppercase">
+                      Número de Versión *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. 2.0.2"
+                      value={pubVersion}
+                      onChange={e => setPubVersion(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1 uppercase">
+                      Enlace de Descarga Directa del APK *
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://.../Maxima_Potencia.apk"
+                      value={pubUrl}
+                      onChange={e => setPubUrl(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1 uppercase">
+                    Novedades y Cambios en esta Versión
+                  </label>
+                  <textarea
+                    rows="3"
+                    placeholder="• Corrección de márgenes y botones en móvil...&#10;• Nuevas opciones de análisis VBT..."
+                    value={pubNotes}
+                    onChange={e => setPubNotes(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={pubMandatory}
+                      onChange={e => setPubMandatory(e.target.checked)}
+                      className="rounded border-slate-700 text-red-600 focus:ring-red-500 bg-slate-900"
+                    />
+                    <span>Actualización obligatoria</span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
+                  >
+                    <Rocket className="w-3.5 h-3.5" />
+                    <span>Publicar Actualización Ahora</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Sección 4: Gestión de Datos y Backups */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
           <Database className="w-5 h-5 text-blue-400" />

@@ -5,6 +5,8 @@ import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { Notification } from './components/layout/Notification';
 import { FloatingTimer } from './components/common/FloatingTimer';
+import { UpdateBanner } from './components/system/UpdateBanner';
+import { UpdateModal } from './components/system/UpdateModal';
 
 import { DashboardView } from './components/dashboard/DashboardView';
 import { AthletesView } from './components/athletes/AthletesView';
@@ -20,7 +22,7 @@ import { GuideView } from './components/guide/GuideView';
 import { SettingsView } from './components/settings/SettingsView';
 
 const MainContent = () => {
-  const { currentPanel, loading } = useApp();
+  const { currentPanel, loading, isUpdateModalOpen, setIsUpdateModalOpen } = useApp();
 
   const renderPanel = () => {
     switch (currentPanel) {
@@ -54,15 +56,18 @@ const MainContent = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
+    <div className="flex h-screen w-full max-w-full overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Barra Lateral Desktop */}
       <Sidebar />
 
       {/* Área Principal de Contenido */}
-      <main className="flex-1 flex flex-col pt-4 px-4 lg:pt-8 lg:px-10 overflow-y-auto custom-scrollbar pb-24 lg:pb-10">
+      <main className="flex-1 min-w-0 w-full max-w-full flex flex-col pt-3 px-3 sm:px-4 lg:pt-8 lg:px-10 overflow-y-auto overflow-x-hidden custom-scrollbar pb-24 lg:pb-10">
+        {/* Banner de Actualización Disponible */}
+        <UpdateBanner />
+
         <Header />
         
-        <div className="flex-1">
+        <div className="flex-1 min-w-0 w-full max-w-full">
           {renderPanel()}
         </div>
 
@@ -80,6 +85,12 @@ const MainContent = () => {
 
       {/* Notificación Toast */}
       <Notification />
+
+      {/* Modal de Actualización Disponible */}
+      <UpdateModal 
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+      />
     </div>
   );
 };

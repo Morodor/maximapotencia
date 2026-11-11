@@ -82,9 +82,9 @@ export const SessionEditor = ({ onBack }) => {
         <span>Volver a la lista de sesiones</span>
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 min-w-0 max-w-full">
         {/* Configuración de Sesión */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-6">
+        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 min-w-0 max-w-full overflow-hidden">
           <h3 className="text-xl font-bold text-white">Configurar Sesión</h3>
 
           <div>
@@ -208,10 +208,10 @@ export const SessionEditor = ({ onBack }) => {
         </div>
 
         {/* Añadir Bloques / Complejos */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-6">
+        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 min-w-0 max-w-full overflow-hidden">
           <h3 className="text-xl font-bold text-white">Bloque de Entrenamiento (Complejo / Superserie)</h3>
 
-          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 space-y-3">
+          <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 sm:p-4 space-y-3 min-w-0 max-w-full">
             <span className="text-xs font-bold text-slate-300 block">
               1. Selecciona Ejercicios para este Bloque
             </span>
@@ -224,10 +224,10 @@ export const SessionEditor = ({ onBack }) => {
                 currentBlockExercises.map(ex => (
                   <span
                     key={ex}
-                    className="inline-flex items-center gap-1.5 bg-red-600/20 text-red-300 border border-red-500/30 px-3 py-1 rounded-lg text-xs font-medium"
+                    className="inline-flex items-center gap-1.5 bg-red-600/20 text-red-300 border border-red-500/30 px-3 py-1 rounded-lg text-xs font-medium max-w-full truncate"
                   >
-                    {ex}
-                    <button onClick={() => removeExerciseFromCurrentBlock(ex)} className="hover:text-white">
+                    <span className="truncate">{ex}</span>
+                    <button onClick={() => removeExerciseFromCurrentBlock(ex)} className="hover:text-white shrink-0 ml-1">
                       ×
                     </button>
                   </span>
@@ -235,11 +235,11 @@ export const SessionEditor = ({ onBack }) => {
               )}
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-slate-700">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-700 min-w-0">
               <select
                 value={selectedExercise}
                 onChange={e => setSelectedExercise(e.target.value)}
-                className="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full sm:flex-1 min-w-0 bg-slate-700 border border-slate-600 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500 truncate"
               >
                 <option value="">-- Selecciona un ejercicio --</option>
                 {allExercises.map(ex => (
@@ -249,7 +249,7 @@ export const SessionEditor = ({ onBack }) => {
               <button
                 type="button"
                 onClick={addExerciseToCurrentBlock}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors flex items-center gap-1"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-1.5 shrink-0 shadow-md shadow-red-950/40"
               >
                 <Plus className="w-4 h-4" />
                 <span>Agregar</span>
@@ -292,15 +292,15 @@ export const SessionEditor = ({ onBack }) => {
             ) : (
               <div className="space-y-2.5">
                 {sessionBlocks.map((b, idx) => (
-                  <div key={b.id} className="bg-slate-800/80 border border-slate-700 p-3 rounded-xl flex items-center justify-between">
-                    <div>
+                  <div key={b.id} className="bg-slate-800/80 border border-slate-700 p-3 rounded-xl flex items-center justify-between min-w-0 gap-3">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-red-400">Bloque #{idx + 1}</p>
-                      <p className="text-sm font-semibold text-white">{b.exercises.join(' + ')}</p>
-                      {b.notes && <p className="text-xs text-slate-400 mt-1">{b.notes}</p>}
+                      <p className="text-sm font-semibold text-white break-words">{b.exercises.join(' + ')}</p>
+                      {b.notes && <p className="text-xs text-slate-400 mt-1 break-words">{b.notes}</p>}
                     </div>
                     <button
                       onClick={() => removeBlock(b.id)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

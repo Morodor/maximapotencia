@@ -8,16 +8,23 @@ import {
   sessionsRef, 
   exercisesDocRef, 
   profileDocRef, 
+  appUpdateDocRef,
   onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   doc,
   db,
   serverTimestamp,
   writeBatch
 } from '../config/firebase';
 import { DEFAULT_EXERCISES_DATA } from '../data/defaultExercises';
+import { 
+  CURRENT_APP_VERSION, 
+  isNewerVersion, 
+  downloadAndInstallUpdate 
+} from '../utils/updateManager';
 
 const AppContext = createContext();
 
@@ -40,6 +47,11 @@ export const AppProvider = ({ children }) => {
   const [profile, setProfile] = useState({ displayName: 'Bayron Quezada', description: 'Atleta / Entrenador' });
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const [appUpdateInfo, setAppUpdateInfo] = useState(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  // Comprobar si hay una versión superior disponible
+  const hasUpdateAvailable = isNewerVersion(appUpdateInfo?.latestVersion, CURRENT_APP_VERSION);
 
   // Mostrar notificaciones toast
   const showNotification = (message, isError = false) => {
@@ -114,6 +126,22 @@ export const AppProvider = ({ children }) => {
       }
     }, (err) => console.warn("Aviso al cargar perfil:", err));
 
+    const unsubUpdate = onSnapshot(appUpdateDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setAppUpdateInfo(docSnap.data());
+      } else {
+        // Inicializar documento de actualización si no existe
+        setDoc(appUpdateDocRef, {
+          latestVersion: CURRENT_APP_VERSION,
+          releaseDate: '2026-11-11',
+          releaseNotes: '• Corrección de márgenes y botones fuera de pantalla en móvil.\n• Selector de ejercicios optimizado para pantallas táctiles.\n• Nuevo sistema de notificaciones de actualización automática.',
+          downloadUrl: '',
+          mandatory: false,
+          updatedAt: serverTimestamp()
+        }, { merge: true }).catch(err => console.warn('Aviso inicializando update doc:', err));
+      }
+    }, (err) => console.warn("Aviso al verificar actualizaciones:", err));
+
     return () => {
       unsubAthletes();
       unsubGroups();
@@ -123,6 +151,7 @@ export const AppProvider = ({ children }) => {
       unsubSessions();
       unsubExercises();
       unsubProfile();
+      unsubUpdate();
     };
   }, []);
 
@@ -494,6 +523,37 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Publicar o actualizar la versión oficial en Firestore (Solo Head Coach)
+  const publishAppUpdate = async ({ latestVersion, releaseNotes, downloadUrl, mandatory = false }) => {
+    try {
+      await setDoc(appUpdateDocRef, {
+        latestVersion: latestVersion.trim(),
+        releaseDate: new Date().toISOString().split('T')[0],
+        releaseNotes: releaseNotes.trim(),
+        downloadUrl: downloadUrl.trim(),
+        mandatory: Boolean(mandatory),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      showNotification(`¡Actualización v${latestVersion} guardada y notificada a todos los dispositivos!`);
+      return true;
+    } catch (e) {
+      console.error("Error publicando actualización:", e);
+      showNotification('Error al publicar actualización: ' + e.message, true);
+      return false;
+    }
+  };
+
+  // Comprobar manualmente si hay actualizaciones (desde Ajustes)
+  const checkForUpdatesManual = () => {
+    if (hasUpdateAvailable) {
+      setIsUpdateModalOpen(true);
+      return true;
+    } else {
+      showNotification(`Tu aplicación está al día con la última versión oficial (v${CURRENT_APP_VERSION}).`);
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       currentPanel,
@@ -530,7 +590,15 @@ export const AppProvider = ({ children }) => {
       addPowerRecord,
       deletePowerRecord,
       addSession,
-      deleteSession
+      deleteSession,
+      currentAppVersion: CURRENT_APP_VERSION,
+      appUpdateInfo,
+      hasUpdateAvailable,
+      isUpdateModalOpen,
+      setIsUpdateModalOpen,
+      publishAppUpdate,
+      checkForUpdatesManual,
+      downloadAndInstallUpdate
     }}>
       {children}
     </AppContext.Provider>

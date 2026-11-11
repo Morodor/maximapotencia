@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { navItems } from './Sidebar';
-import { ShieldCheck, Wifi, Activity, Crown, ChevronDown, Users } from 'lucide-react';
+import { ShieldCheck, Wifi, Activity, Crown, ChevronDown, Users, Rocket } from 'lucide-react';
 import { CoachSwitcherModal } from '../coaches/CoachSwitcherModal';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 
 export const Header = () => {
-  const { currentPanel, athletes, currentCoach, isHeadCoach, coaches } = useApp();
+  const { 
+    currentPanel, 
+    athletes, 
+    currentCoach, 
+    isHeadCoach, 
+    coaches,
+    hasUpdateAvailable,
+    appUpdateInfo,
+    setIsUpdateModalOpen 
+  } = useApp();
   const currentItem = navItems.find(i => i.id === currentPanel) || navItems[0];
 
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
@@ -39,7 +48,19 @@ export const Header = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Píldora de Actualización Disponible */}
+          {hasUpdateAvailable && (
+            <button
+              onClick={() => setIsUpdateModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-black shadow-md shadow-red-950/40 animate-pulse active:scale-95 transition-all"
+              title="Nueva versión oficial disponible"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              <span>v{appUpdateInfo?.latestVersion} Disponible</span>
+            </button>
+          )}
+
           {/* Tarjeta Interactiva del Entrenador Activo */}
           <button
             onClick={() => setIsSwitcherOpen(true)}

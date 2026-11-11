@@ -39,6 +39,7 @@ export const sessionsRef = collection(db, `gyms/${GYM_ID}/sessions`);
 export const exercisesDocRef = doc(db, `gyms/${GYM_ID}/user_data/exercises`);
 export const profileDocRef = doc(db, `gyms/${GYM_ID}/user_data/profile`);
 export const inventoryDocRef = doc(db, `gyms/${GYM_ID}/user_data/inventory`);
+export const appUpdateDocRef = doc(db, `gyms/${GYM_ID}/system/app_update`);
 
 export { 
   collection, 
