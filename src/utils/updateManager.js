@@ -1,7 +1,7 @@
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = "2.0.1";
+export const CURRENT_APP_VERSION = "2.0.2";
 export const APP_BUILD_DATE = "2026-11-11";
 
 /**

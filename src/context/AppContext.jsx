@@ -277,6 +277,21 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const updateSession = async (id, data) => {
+    try {
+      await updateDoc(doc(sessionsRef, id), {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+      showNotification('Sesión actualizada con éxito.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error al actualizar sesión: ' + e.message, true);
+      return false;
+    }
+  };
+
   const deleteSession = async (id) => {
     try {
       await deleteDoc(doc(sessionsRef, id));
@@ -590,6 +605,7 @@ export const AppProvider = ({ children }) => {
       addPowerRecord,
       deletePowerRecord,
       addSession,
+      updateSession,
       deleteSession,
       currentAppVersion: CURRENT_APP_VERSION,
       appUpdateInfo,

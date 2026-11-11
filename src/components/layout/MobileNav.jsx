@@ -72,7 +72,10 @@ export const MobileNav = () => {
       )}
 
       {/* Main Bar */}
-      <nav className="relative z-50 grid grid-cols-5 gap-1 p-1 bg-slate-900 border-t border-slate-800 shadow-xl">
+      <nav 
+        className="relative z-50 grid grid-cols-5 gap-1 p-1 bg-slate-900 border-t border-slate-800 shadow-xl"
+        style={{ paddingBottom: 'max(0.35rem, env(safe-area-inset-bottom, 0px))' }}
+      >
         {mainButtons.map((btn) => {
           const Icon = btn.icon;
           const isActive = currentPanel === btn.id;

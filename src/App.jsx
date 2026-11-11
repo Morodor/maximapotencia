@@ -61,7 +61,10 @@ const MainContent = () => {
       <Sidebar />
 
       {/* Área Principal de Contenido */}
-      <main className="flex-1 min-w-0 w-full max-w-full flex flex-col pt-3 px-3 sm:px-4 lg:pt-8 lg:px-10 overflow-y-auto overflow-x-hidden custom-scrollbar pb-24 lg:pb-10">
+      <main 
+        className="flex-1 min-w-0 w-full max-w-full flex flex-col px-3 sm:px-4 lg:px-10 overflow-y-auto overflow-x-hidden custom-scrollbar pb-28 lg:pb-10 pt-7 sm:pt-6 lg:pt-8"
+        style={{ paddingTop: 'max(1.75rem, calc(env(safe-area-inset-top, 0px) + 0.75rem))' }}
+      >
         {/* Banner de Actualización Disponible */}
         <UpdateBanner />
 
