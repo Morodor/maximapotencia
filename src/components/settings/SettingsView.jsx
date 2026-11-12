@@ -32,6 +32,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
+import { GoogleIcon } from '../auth/AuthModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
 import { getSuiteConfig, saveSuiteConfig, checkSpeedTrackerInstalled, launchSpeedTracker } from '../../utils/suiteLauncher';
 
@@ -258,8 +259,15 @@ export const SettingsView = () => {
               </div>
               <div className="text-left sm:text-right text-[11px] text-slate-400">
                 <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Método de Acceso</span>
-                <span className="font-semibold text-slate-300">
-                  {currentUser.providerData?.[0]?.providerId === 'google.com' ? 'Google Account' : 'Email & Contraseña'}
+                <span className="font-semibold text-slate-300 inline-flex items-center gap-1.5 mt-0.5">
+                  {currentUser.providerData?.[0]?.providerId === 'google.com' ? (
+                    <>
+                      <GoogleIcon className="w-3.5 h-3.5" />
+                      <span>Google Account</span>
+                    </>
+                  ) : (
+                    <span>Email & Contraseña</span>
+                  )}
                 </span>
               </div>
             </div>
