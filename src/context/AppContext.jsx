@@ -33,54 +33,66 @@ export const AVAILABLE_THEMES = [
     name: 'Rojo Potencia',
     subtitle: 'Identidad Clásica',
     colorHex: '#ef4444',
-    bgClass: 'bg-red-600',
-    borderClass: 'border-red-500',
-    description: 'El estilo original de fuerza, garra y máxima intensidad.'
+    bgHex: '#09090b',
+    surfaceHex: '#121215',
+    borderHex: '#292936',
+    environmentName: 'Carbón Puro Ónice (Sin azul)',
+    description: 'Fondo negro carbón ultra oscuro con acento rojo carmesí de máxima potencia e intensidad.'
   },
   {
     id: 'blue',
     name: 'Azul Eléctrico',
     subtitle: 'Enfoque Atlético',
     colorHex: '#3b82f6',
-    bgClass: 'bg-blue-600',
-    borderClass: 'border-blue-500',
-    description: 'Enfoque deportivo, velocidad, concentración y rendimiento.'
+    bgHex: '#020713',
+    surfaceHex: '#081224',
+    borderHex: '#1a315b',
+    environmentName: 'Midnight Navy Profundo',
+    description: 'Fondo azul noche abisal con acentos eléctricos para enfoque atlético y concentración.'
   },
   {
     id: 'emerald',
     name: 'Verde Esmeralda',
     subtitle: 'Salud y Vitalidad',
     colorHex: '#10b981',
-    bgClass: 'bg-emerald-600',
-    borderClass: 'border-emerald-500',
-    description: 'Potencia biológica, recuperación activa y constancia.'
+    bgHex: '#030f0a',
+    surfaceHex: '#061b12',
+    borderHex: '#164230',
+    environmentName: 'Bosque Jade Oscuro',
+    description: 'Fondo verde bosque oscuro profundo con acentos jade esmeralda para potencia y resistencia.'
   },
   {
     id: 'purple',
     name: 'Morado Neón',
     subtitle: 'Cyber Pro',
     colorHex: '#8b5cf6',
-    bgClass: 'bg-purple-600',
-    borderClass: 'border-purple-500',
-    description: 'Estilo moderno, futurista y de categoría élite.'
+    bgHex: '#090312',
+    surfaceHex: '#120822',
+    borderHex: '#2f1952',
+    environmentName: 'Cyber Violeta Nocturno',
+    description: 'Fondo violeta oscuro futurista con acentos neón de categoría élite.'
   },
   {
     id: 'amber',
     name: 'Oro Olímpico',
     subtitle: 'Fuerza y Récords',
     colorHex: '#f59e0b',
-    bgClass: 'bg-amber-600',
-    borderClass: 'border-amber-500',
-    description: 'Inspirado en los récords dorados, podio y disciplina.'
+    bgHex: '#0e0903',
+    surfaceHex: '#181107',
+    borderHex: '#3d2c17',
+    environmentName: 'Bronce & Carbón Cálido',
+    description: 'Fondo carbón cálido con reflejos bronce y acentos dorados inspirados en el podio olímpico.'
   },
   {
     id: 'cyan',
     name: 'Cian Glaciar',
     subtitle: 'Ciencia y VBT',
     colorHex: '#06b6d4',
-    bgClass: 'bg-cyan-600',
-    borderClass: 'border-cyan-500',
-    description: 'Tecnología, ciencia aplicada al deporte y alta precisión.'
+    bgHex: '#020d14',
+    surfaceHex: '#051822',
+    borderHex: '#123b50',
+    environmentName: 'Océano Polar Abisal',
+    description: 'Fondo océano polar profundo con acentos cian glaciar para tecnología deportiva y ciencia VBT.'
   }
 ];
 

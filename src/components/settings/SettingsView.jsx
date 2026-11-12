@@ -321,7 +321,7 @@ export const SettingsView = () => {
               <span>Paleta de Color y Personalización</span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Personaliza el color de acento principal de toda la aplicación (botones, gráficos, navegación y destacados).
+              Personaliza el color de acento y el color de fondo ambiental de toda la aplicación.
             </p>
           </div>
           <span className="text-xs font-semibold text-slate-400 px-3 py-1 bg-slate-800/80 rounded-xl border border-slate-700 w-fit">
@@ -329,63 +329,146 @@ export const SettingsView = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-          {availableThemes?.map((theme) => {
-            const isSelected = (appTheme || 'red') === theme.id;
-            return (
-              <div
-                key={theme.id}
-                onClick={() => changeTheme(theme.id)}
-                className={`p-4 rounded-2xl border cursor-pointer transition-all active:scale-98 flex flex-col justify-between relative overflow-hidden group ${
-                  isSelected
-                    ? 'bg-slate-800/90 border-slate-500 ring-2 ring-red-500 shadow-lg'
-                    : 'bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'
-                }`}
+        {/* Selector Desplegable de Temas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+              Lista Desplegable de Temas
+            </label>
+            <div className="relative">
+              <select
+                value={appTheme || 'red'}
+                onChange={e => changeTheme(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none pr-10 cursor-pointer shadow-md"
               >
-                {/* Indicador de selección */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <span 
-                      className="w-7 h-7 rounded-full shadow-md flex items-center justify-center shrink-0 border-2 border-slate-900"
-                      style={{ backgroundColor: theme.colorHex }}
-                    >
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
-                    </span>
-                    <div>
-                      <p className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
-                        {theme.name}
-                      </p>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {theme.subtitle}
+                {availableThemes?.map(t => (
+                  <option key={t.id} value={t.id} className="bg-slate-900 text-white py-2">
+                    {t.name} — {t.environmentName || t.subtitle}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <ChevronDown className="w-5 h-5" />
+              </div>
+            </div>
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              Cambia inmediatamente el acento y el fondo de toda la aplicación.
+            </span>
+          </div>
+
+          {/* Pastillas rápidas */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+              Acceso Rápido por Muestra
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableThemes?.map(t => {
+                const isSelected = (appTheme || 'red') === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => changeTheme(t.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 transition-all ${
+                      isSelected 
+                        ? 'border-white text-white ring-2 ring-red-500 shadow-md scale-105'
+                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'
+                    }`}
+                    style={{
+                      backgroundColor: isSelected ? t.surfaceHex : undefined
+                    }}
+                  >
+                    <span className="w-3 h-3 rounded-full border border-black/40" style={{ backgroundColor: t.colorHex }} />
+                    <span>{t.name.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Vista Previa en Vivo */}
+        {(() => {
+          const activeThemeObj = availableThemes?.find(t => t.id === (appTheme || 'red')) || availableThemes?.[0];
+          if (!activeThemeObj) return null;
+
+          return (
+            <div className="p-5 rounded-2xl border border-slate-700/80 bg-slate-950/80 shadow-2xl space-y-4 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center border-2 border-slate-800 shrink-0"
+                    style={{ backgroundColor: activeThemeObj.colorHex }}
+                  >
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-bold text-white">{activeThemeObj.name}</h4>
+                      <span 
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-xs"
+                        style={{ backgroundColor: activeThemeObj.colorHex }}
+                      >
+                        Vista Previa Activa
                       </span>
                     </div>
+                    <p className="text-xs text-slate-400">{activeThemeObj.environmentName || activeThemeObj.subtitle}</p>
                   </div>
-
-                  {isSelected && (
-                    <span className="text-[10px] uppercase font-black bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-                      Activo
-                    </span>
-                  )}
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed mb-3">
-                  {theme.description}
-                </p>
-
-                {/* Vista previa miniatura de botón */}
-                <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-500 font-mono">Muestra visual:</span>
-                  <div 
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white shadow-xs flex items-center gap-1"
-                    style={{ backgroundColor: theme.colorHex }}
-                  >
-                    <span>Ejemplo</span>
+                <div className="flex items-center gap-3">
+                  <div className="text-left sm:text-right">
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Atmósfera de Color</span>
+                    <div className="flex items-center gap-1.5 sm:justify-end mt-0.5">
+                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.bgHex }} title="Fondo general" />
+                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.surfaceHex }} title="Tarjetas" />
+                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.colorHex }} title="Acento" />
+                    </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {activeThemeObj.description}
+              </p>
+
+              {/* Muestra de Componentes Reales con el Color de Acento y Fondo */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900 flex flex-col justify-between gap-2.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Botón de Acción</span>
+                  <button 
+                    type="button"
+                    className="w-full py-2 px-3 rounded-xl text-xs font-bold text-white shadow-md active:scale-95 transition-transform"
+                    style={{ backgroundColor: activeThemeObj.colorHex }}
+                  >
+                    Registrar Serie 🏋️
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900 flex flex-col justify-between gap-2.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Insignia y Métrica VBT</span>
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="text-xs font-bold px-2.5 py-1 rounded-lg text-white shadow-xs"
+                      style={{ backgroundColor: activeThemeObj.colorHex }}
+                    >
+                      0.85 m/s
+                    </span>
+                    <span className="text-xs font-bold text-slate-200 font-mono">140 kg (85%)</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900 flex flex-col justify-between gap-2.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Fondo y Superficie</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Tono:</span>
+                    <span className="font-bold text-white font-mono">{activeThemeObj.bgHex}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Sección 3: Centro de Actualizaciones del Sistema */}

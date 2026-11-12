@@ -8,6 +8,9 @@
     position: relative;
     touch-action: pan-y;
     font-family: 'Inter', sans-serif;
+    background-color: var(--color-slate-950, #09090b);
+    color: #f8fafc;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
   }
 }
 
@@ -17,21 +20,44 @@
   height: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background-color: #0f172a;
+  background-color: var(--color-slate-950, #09090b);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #334155;
+  background-color: var(--color-slate-800, #1e293b);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #475569;
+  background-color: var(--color-slate-700, #334155);
 }
 
 /* ========================================================
    SISTEMA DE TEMAS Y PALETAS DE COLOR DINÁMICAS (Tailwind v4)
+   Acento + Fondo y Superficies Sincronizadas
    ======================================================== */
 
-/* Paleta: Azul Eléctrico */
+/* 1. Paleta: Rojo Potencia (Carbón Puro / Neutral Dark Black) */
+[data-theme="red"], html[data-theme="red"] {
+  --color-red-50: oklch(97.1% .013 17.4);
+  --color-red-100: oklch(93.6% .032 17.7);
+  --color-red-200: oklch(88.5% .062 18.3);
+  --color-red-300: oklch(80.8% .114 19.6);
+  --color-red-400: oklch(70.4% .191 22.2);
+  --color-red-500: oklch(63.7% .237 25.3);
+  --color-red-600: oklch(57.7% .245 27.3);
+  --color-red-700: oklch(50.5% .213 27.5);
+  --color-red-800: oklch(44.4% .177 26.9);
+  --color-red-900: oklch(39.6% .141 25.7);
+  --color-red-950: oklch(25.8% .092 26);
+
+  /* Fondos y Superficies: Carbón Puro / Negro Ónice (Sin azul) */
+  --color-slate-950: #09090b;
+  --color-slate-900: #121215;
+  --color-slate-800: #1b1b22;
+  --color-slate-700: #292936;
+  --color-slate-600: #3f3f50;
+}
+
+/* 2. Paleta: Azul Eléctrico (Deep Midnight Navy) */
 [data-theme="blue"], html[data-theme="blue"] {
   --color-red-50: oklch(97% .014 254.6);
   --color-red-100: oklch(93.2% .032 255.6);
@@ -44,9 +70,16 @@
   --color-red-800: oklch(42.4% .199 265.6);
   --color-red-900: oklch(37.9% .146 265.5);
   --color-red-950: oklch(28.2% .091 267.9);
+
+  /* Fondos y Superficies: Midnight Blue Profundo */
+  --color-slate-950: #020713;
+  --color-slate-900: #081224;
+  --color-slate-800: #10203d;
+  --color-slate-700: #1a315b;
+  --color-slate-600: #284882;
 }
 
-/* Paleta: Verde Esmeralda */
+/* 3. Paleta: Verde Esmeralda (Bosque Oscuro / Deep Jade Obsidian) */
 [data-theme="emerald"], html[data-theme="emerald"] {
   --color-red-50: oklch(97.9% .021 166.1);
   --color-red-100: oklch(95% .04 163.3);
@@ -59,9 +92,16 @@
   --color-red-800: oklch(43.2% .095 166.9);
   --color-red-900: oklch(37.8% .077 168.9);
   --color-red-950: oklch(26.2% .051 172.6);
+
+  /* Fondos y Superficies: Verde Esmeralda / Bosque Oscuro */
+  --color-slate-950: #030f0a;
+  --color-slate-900: #061b12;
+  --color-slate-800: #0d2b1e;
+  --color-slate-700: #164230;
+  --color-slate-600: #236148;
 }
 
-/* Paleta: Morado Neón */
+/* 4. Paleta: Morado Neón (Cyber Violeta / Deep Violet Obsidian) */
 [data-theme="purple"], html[data-theme="purple"] {
   --color-red-50: oklch(97.7% .014 308.3);
   --color-red-100: oklch(94.6% .033 307.2);
@@ -74,9 +114,16 @@
   --color-red-800: oklch(43.8% .218 303.7);
   --color-red-900: oklch(38.1% .176 305);
   --color-red-950: oklch(29.1% .149 302.7);
+
+  /* Fondos y Superficies: Violeta / Púrpura Nocturno */
+  --color-slate-950: #090312;
+  --color-slate-900: #120822;
+  --color-slate-800: #1d0f36;
+  --color-slate-700: #2f1952;
+  --color-slate-600: #472778;
 }
 
-/* Paleta: Oro Olímpico / Ámbar */
+/* 5. Paleta: Oro Olímpico / Ámbar (Carbón Cálido / Bronce Espresso) */
 [data-theme="amber"], html[data-theme="amber"] {
   --color-red-50: oklch(98% .016 95);
   --color-red-100: oklch(96.2% .044 95);
@@ -89,9 +136,16 @@
   --color-red-800: oklch(47.3% .137 46.2);
   --color-red-900: oklch(41.4% .112 45.9);
   --color-red-950: oklch(27.9% .077 45.6);
+
+  /* Fondos y Superficies: Carbón Cálido / Bronce */
+  --color-slate-950: #0e0903;
+  --color-slate-900: #181107;
+  --color-slate-800: #271c0d;
+  --color-slate-700: #3d2c17;
+  --color-slate-600: #594224;
 }
 
-/* Paleta: Cian Glaciar */
+/* 6. Paleta: Cian Glaciar (Océano Polar / Deep Cyan Trench) */
 [data-theme="cyan"], html[data-theme="cyan"] {
   --color-red-50: oklch(98.4% .019 200.9);
   --color-red-100: oklch(95.6% .045 203.4);
@@ -104,4 +158,11 @@
   --color-red-800: oklch(45% .085 224.3);
   --color-red-900: oklch(39.8% .07 227.4);
   --color-red-950: oklch(30.2% .056 229.7);
+
+  /* Fondos y Superficies: Cian Océano Abisal */
+  --color-slate-950: #020d14;
+  --color-slate-900: #051822;
+  --color-slate-800: #0b2635;
+  --color-slate-700: #123b50;
+  --color-slate-600: #1e5874;
 }

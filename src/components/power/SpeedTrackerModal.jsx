@@ -100,24 +100,26 @@ export const SpeedTrackerModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Encabezado */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center">
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center shrink-0">
               <Zap className="w-5 h-5 fill-red-500" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Suite Máxima Potencia</h3>
-                <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-white whitespace-nowrap">Suite Máxima Potencia</h3>
+                <span className="inline-flex items-center justify-center text-center whitespace-nowrap text-[10px] sm:text-[11px] bg-red-600 text-white font-bold px-3 py-0.5 rounded-full shadow-sm tracking-wide shrink-0">
                   Speed Tracker
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Análisis cinemático óptico de precisión empírica</p>
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate mt-0.5">
+                Análisis cinemático óptico de precisión empírica
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
