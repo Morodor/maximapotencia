@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const MobileNav = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   const mainButtons = [
@@ -77,6 +77,8 @@ export const MobileNav = () => {
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${
                 currentUser 
                   ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                  : isGuestMode
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                   : 'bg-red-600/20 border-red-500/40 text-red-400'
               }`}>
                 {currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-5 h-5" />}
@@ -84,14 +86,21 @@ export const MobileNav = () => {
               <div className="min-w-0 text-left">
                 <div className="flex items-center gap-1.5">
                   {currentUser && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>}
+                  {isGuestMode && <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>}
                   <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
                     {currentUser 
                       ? (currentUser.displayName || currentUser.email?.split('@')[0] || 'Mi Perfil')
+                      : isGuestMode
+                      ? 'Modo Invitado Activo'
                       : 'Cuenta & Sesión'}
                   </p>
                 </div>
                 <p className="text-[11px] text-slate-400 truncate">
-                  {currentUser ? currentUser.email : 'Toca para iniciar sesión o registrarte'}
+                  {currentUser 
+                    ? currentUser.email 
+                    : isGuestMode
+                    ? 'Guardando solo en este teléfono (LocalStorage)'
+                    : 'Toca para iniciar sesión o registrarte'}
                 </p>
               </div>
             </div>
@@ -99,9 +108,11 @@ export const MobileNav = () => {
             <div className={`px-2.5 py-1 rounded-xl text-[11px] font-bold shrink-0 flex items-center gap-1 border ${
               currentUser 
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                : isGuestMode
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                 : 'bg-red-600 text-white border-red-500 shadow-sm'
             }`}>
-              {currentUser ? <span>Mi Cuenta</span> : <span>Ingresar</span>}
+              {currentUser ? <span>Mi Cuenta</span> : isGuestMode ? <span>Invitado</span> : <span>Ingresar</span>}
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -116,19 +127,28 @@ export const MobileNav = () => {
                   setIsAuthModalOpen(true);
                   setIsOpen(false);
                 }}
-                className="flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl transition-all active:scale-95 text-center bg-gradient-to-b from-slate-800 to-slate-800/80 hover:bg-slate-800 text-slate-200 border border-red-500/40 shadow-xs relative overflow-hidden group"
+                className={`flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl transition-all active:scale-95 text-center bg-gradient-to-b from-slate-800 to-slate-800/80 hover:bg-slate-800 text-slate-200 border shadow-xs relative overflow-hidden group ${
+                  isGuestMode ? 'border-amber-500/40' : 'border-red-500/40'
+                }`}
               >
                 {currentUser && (
                   <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-500/20"></span>
                 )}
-                <div className="w-7 h-7 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 mb-1 shrink-0 group-hover:scale-110 transition-transform">
+                {isGuestMode && (
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-400/20"></span>
+                )}
+                <div className={`w-7 h-7 rounded-xl border flex items-center justify-center mb-1 shrink-0 group-hover:scale-110 transition-transform ${
+                  isGuestMode 
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                    : 'bg-red-600/20 border-red-500/40 text-red-400'
+                }`}>
                   <User className="w-4 h-4" />
                 </div>
                 <span className="text-xs font-bold tracking-tight truncate w-full block text-white">
                   Mi Cuenta
                 </span>
                 <span className="text-[9px] text-slate-400 mt-0.5 truncate w-full block">
-                  {currentUser ? 'Perfil' : 'Ingresar'}
+                  {currentUser ? 'Perfil' : isGuestMode ? 'Invitado' : 'Ingresar'}
                 </span>
               </button>
 

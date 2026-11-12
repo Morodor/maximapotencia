@@ -13,7 +13,10 @@ import {
   ShieldCheck, 
   Crown,
   Loader2,
-  Sparkles
+  Sparkles,
+  HardDrive,
+  Database,
+  ShieldAlert
 } from 'lucide-react';
 
 export const AuthModal = ({ isOpen, onClose }) => {
@@ -25,7 +28,11 @@ export const AuthModal = ({ isOpen, onClose }) => {
     logout,
     currentCoach,
     isHeadCoach,
-    showNotification 
+    showNotification,
+    isGuestMode,
+    setGuestMode,
+    toggleGuestMode,
+    migrateGuestDataToCloud
   } = useApp();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -155,6 +162,19 @@ export const AuthModal = ({ isOpen, onClose }) => {
                   <span>Perfil: <strong>{currentCoach?.name || 'Head Coach'}</strong></span>
                 </div>
               </div>
+
+              {/* Botón de Migración de datos locales si existen */}
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await migrateGuestDataToCloud();
+                  if (ok) onClose();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all active:scale-95"
+              >
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span>Migrar datos locales de invitado a mi cuenta</span>
+              </button>
 
               <button
                 type="button"
@@ -295,6 +315,56 @@ export const AuthModal = ({ isOpen, onClose }) => {
               >
                 <span>Acceder con Google</span>
               </button>
+
+              {/* Separador e Información de Modo Invitado */}
+              <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  isGuestMode
+                    ? 'bg-amber-950/20 border-amber-500/40 ring-1 ring-amber-500/30'
+                    : 'bg-slate-950/80 border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <HardDrive className={`w-4 h-4 ${isGuestMode ? 'text-amber-400' : 'text-slate-400'}`} />
+                      <span className="text-xs font-bold text-white">Modo Invitado (Almacenamiento Local)</span>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isGuestMode
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        : 'bg-slate-800 text-slate-500'
+                    }`}>
+                      {isGuestMode ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
+                    {isGuestMode
+                      ? '⚠️ Estás operando en Modo Invitado. Todos tus atletas y registros se guardan únicamente en la memoria de este teléfono (localStorage) y jamás se sincronizan en la nube.'
+                      : 'Si no deseas iniciar sesión ahora, activa este modo para registrar atletas y sesiones localmente en tu teléfono sin sincronizar con la nube.'}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleGuestMode();
+                      if (!isGuestMode) {
+                        onClose();
+                      }
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 active:scale-95 ${
+                      isGuestMode
+                        ? 'bg-amber-600/15 border-amber-500/40 text-amber-300 hover:bg-amber-600/25'
+                        : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-white'
+                    }`}
+                  >
+                    <span>
+                      {isGuestMode 
+                        ? 'Desactivar Modo Invitado (Volver a Solo Lectura)' 
+                        : 'Continuar en Modo Invitado (Guardar en LocalStorage)'}
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

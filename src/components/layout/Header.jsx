@@ -18,7 +18,8 @@ export const Header = () => {
     setIsUpdateModalOpen,
     currentUser,
     isAuthModalOpen,
-    setIsAuthModalOpen
+    setIsAuthModalOpen,
+    isGuestMode
   } = useApp();
   const currentItem = navItems.find(i => i.id === currentPanel) || navItems[0];
 
@@ -39,13 +40,24 @@ export const Header = () => {
               {currentItem.name}
             </h2>
             {/* Live Sync Status Pill */}
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            {currentUser ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-semibold text-emerald-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Nube Activa</span>
               </span>
-              <span>En Línea</span>
-            </span>
+            ) : isGuestMode ? (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] font-semibold text-amber-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span>Modo Invitado (Local)</span>
+              </span>
+            ) : (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-[11px] font-semibold text-slate-400">
+                <span>🔒 Solo Lectura</span>
+              </span>
+            )}
           </div>
           <p className="text-slate-400 mt-1 text-sm font-medium">
             {currentItem.subtitle}
@@ -120,6 +132,23 @@ export const Header = () => {
                 <p className="text-slate-500 text-[10px] font-medium truncate max-w-[110px] mt-0.5">
                   {currentUser.email}
                 </p>
+              </div>
+            </button>
+          ) : isGuestMode ? (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-800/90 border border-amber-500/40 text-amber-300 font-bold px-3 py-2 rounded-2xl shadow-sm transition-all active:scale-95 group text-left"
+              title="Modo Invitado activo (guardando en este dispositivo)"
+            >
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="hidden sm:block text-left text-xs pr-1">
+                <div className="flex items-center gap-1.5 leading-tight">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
+                  <span className="font-bold text-white group-hover:text-amber-400 transition-colors">Modo Invitado</span>
+                </div>
+                <p className="text-slate-400 text-[10px] font-medium">Solo Local</p>
               </div>
             </button>
           ) : (

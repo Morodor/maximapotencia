@@ -129,9 +129,85 @@ export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Claves de Almacenamiento Local para Modo Invitado
+  const GUEST_STORAGE_KEYS = {
+    ATHLETES: 'mp_guest_athletes',
+    GROUPS: 'mp_guest_groups',
+    RM: 'mp_guest_rm',
+    POWER: 'mp_guest_power',
+    SESSIONS: 'mp_guest_sessions',
+    EXERCISES: 'mp_guest_exercises',
+    COACHES: 'mp_guest_coaches'
+  };
+
+  const getGuestStorage = (key, fallback = []) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw !== null ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      console.error(`Error al leer ${key} de localStorage:`, e);
+      return fallback;
+    }
+  };
+
+  const setGuestStorage = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+      console.error(`Error al escribir ${key} en localStorage:`, e);
+    }
+  };
+
+  // Modo Invitado y Seguridad Local
+  const [isGuestMode, setIsGuestModeState] = useState(() => {
+    try {
+      return localStorage.getItem('mp_guest_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const setGuestMode = (enabled) => {
+    try {
+      localStorage.setItem('mp_guest_mode', enabled ? 'true' : 'false');
+    } catch (e) {}
+    setIsGuestModeState(enabled);
+    if (enabled) {
+      // Cargar registros locales si existen
+      const localAth = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, null);
+      if (localAth !== null) setAthletes(localAth);
+      const localGrp = getGuestStorage(GUEST_STORAGE_KEYS.GROUPS, null);
+      if (localGrp !== null) setGroups(localGrp);
+      const localRm = getGuestStorage(GUEST_STORAGE_KEYS.RM, null);
+      if (localRm !== null) setRmRecords(localRm);
+      const localPwr = getGuestStorage(GUEST_STORAGE_KEYS.POWER, null);
+      if (localPwr !== null) setPowerRecords(localPwr);
+      const localSes = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, null);
+      if (localSes !== null) setSessions(localSes);
+      const localEx = getGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, null);
+      if (localEx !== null) setExercises(localEx);
+
+      showNotification('Modo Invitado activado. Los registros se guardarán exclusivamente en este dispositivo.');
+    } else {
+      showNotification('Modo Invitado desactivado. Acceso en modo Solo Lectura.');
+    }
+  };
+
+  const toggleGuestMode = () => {
+    setGuestMode(!isGuestMode);
+  };
+
+  const canRegister = Boolean(currentUser || isGuestMode);
+
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      if (user) {
+        setIsGuestModeState(false);
+        try {
+          localStorage.setItem('mp_guest_mode', 'false');
+        } catch (e) {}
+      }
     });
     return () => unsubAuth();
   }, []);
@@ -170,6 +246,93 @@ export const AppProvider = ({ children }) => {
       return true;
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
+      return false;
+    }
+  };
+
+  // Migrar datos locales de invitado a la cuenta en la nube
+  const migrateGuestDataToCloud = async () => {
+    if (!currentUser) {
+      showNotification('Debes iniciar sesión con tu cuenta para subir los datos locales a la nube.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    try {
+      const localAth = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, []);
+      const localRm = getGuestStorage(GUEST_STORAGE_KEYS.RM, []);
+      const localPwr = getGuestStorage(GUEST_STORAGE_KEYS.POWER, []);
+      const localSes = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, []);
+
+      let count = 0;
+      const athleteIdMap = {};
+
+      const refs = getGymRefs(activeGymId);
+
+      // Migrar Atletas
+      for (const ath of localAth) {
+        const { id, isGuestRecord, ...cleanData } = ath;
+        const ref = await addDoc(refs.athletesRef, {
+          ...cleanData,
+          migratedFromGuest: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        athleteIdMap[id] = ref.id;
+        count++;
+      }
+
+      // Migrar RMs
+      for (const rm of localRm) {
+        const { id, isGuestRecord, ...cleanData } = rm;
+        const newAthId = athleteIdMap[cleanData.userId] || cleanData.userId;
+        await addDoc(refs.rmRecordsRef, {
+          ...cleanData,
+          userId: newAthId,
+          migratedFromGuest: true,
+          createdAt: serverTimestamp()
+        });
+        count++;
+      }
+
+      // Migrar Potencia
+      for (const pwr of localPwr) {
+        const { id, isGuestRecord, ...cleanData } = pwr;
+        const newAthId = athleteIdMap[cleanData.userId] || cleanData.userId;
+        await addDoc(refs.powerRecordsRef, {
+          ...cleanData,
+          userId: newAthId,
+          migratedFromGuest: true,
+          createdAt: serverTimestamp()
+        });
+        count++;
+      }
+
+      // Migrar Sesiones
+      for (const ses of localSes) {
+        const { id, isGuestRecord, ...cleanData } = ses;
+        const newAthId = athleteIdMap[cleanData.athleteId] || cleanData.athleteId;
+        await addDoc(refs.sessionsRef, {
+          ...cleanData,
+          athleteId: newAthId,
+          migratedFromGuest: true,
+          createdAt: serverTimestamp()
+        });
+        count++;
+      }
+
+      // Limpiar LocalStorage de invitado
+      localStorage.removeItem(GUEST_STORAGE_KEYS.ATHLETES);
+      localStorage.removeItem(GUEST_STORAGE_KEYS.RM);
+      localStorage.removeItem(GUEST_STORAGE_KEYS.POWER);
+      localStorage.removeItem(GUEST_STORAGE_KEYS.SESSIONS);
+      localStorage.removeItem(GUEST_STORAGE_KEYS.GROUPS);
+
+      showNotification(`¡${count} registros locales migrados y sincronizados con éxito a la nube!`);
+      return true;
+    } catch (e) {
+      console.error('Error migrando datos de invitado:', e);
+      showNotification('Error al migrar datos a la nube: ' + e.message, true);
       return false;
     }
   };
@@ -237,6 +400,14 @@ export const AppProvider = ({ children }) => {
 
     const unsubAthletes = onSnapshot(refs.athletesRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!currentUser && isGuestMode) {
+        const local = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, null);
+        if (local !== null) {
+          setAthletes(local);
+          setLoading(false);
+          return;
+        }
+      }
       setAthletes(list);
       setLoading(false);
     }, (err) => {
@@ -246,6 +417,13 @@ export const AppProvider = ({ children }) => {
 
     const unsubGroups = onSnapshot(refs.groupsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!currentUser && isGuestMode) {
+        const local = getGuestStorage(GUEST_STORAGE_KEYS.GROUPS, null);
+        if (local !== null) {
+          setGroups(local);
+          return;
+        }
+      }
       setGroups(list);
     }, (err) => console.warn("Aviso al cargar grupos:", err));
 
@@ -271,21 +449,49 @@ export const AppProvider = ({ children }) => {
 
     const unsubRM = onSnapshot(refs.rmRecordsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!currentUser && isGuestMode) {
+        const local = getGuestStorage(GUEST_STORAGE_KEYS.RM, null);
+        if (local !== null) {
+          setRmRecords(local);
+          return;
+        }
+      }
       setRmRecords(list);
     }, (err) => console.warn("Aviso al cargar 1RM:", err));
 
     const unsubPower = onSnapshot(refs.powerRecordsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!currentUser && isGuestMode) {
+        const local = getGuestStorage(GUEST_STORAGE_KEYS.POWER, null);
+        if (local !== null) {
+          setPowerRecords(local);
+          return;
+        }
+      }
       setPowerRecords(list);
     }, (err) => console.warn("Aviso al cargar potencia:", err));
 
     const unsubSessions = onSnapshot(refs.sessionsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!currentUser && isGuestMode) {
+        const local = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, null);
+        if (local !== null) {
+          setSessions(local);
+          return;
+        }
+      }
       setSessions(list);
     }, (err) => console.warn("Aviso al cargar sesiones:", err));
 
     const unsubExercises = onSnapshot(refs.exercisesDocRef, (docSnap) => {
       if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
+        if (!currentUser && isGuestMode) {
+          const local = getGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, null);
+          if (local !== null) {
+            setExercises(local);
+            return;
+          }
+        }
         setExercises(docSnap.data());
       }
     }, (err) => console.warn("Aviso al cargar ejercicios:", err));
@@ -327,13 +533,41 @@ export const AppProvider = ({ children }) => {
 
   // Operaciones de Atletas
   const addAthlete = async (data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para registrar datos, o activar el Modo Invitado para guardar solo en este dispositivo.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const newAthlete = {
+          id: `guest_ath_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          ...data,
+          isGuestRecord: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, athletes);
+        const updated = [newAthlete, ...currentList.filter(a => a.id !== newAthlete.id)];
+        setGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, updated);
+        setAthletes(updated);
+        showNotification('Atleta guardado localmente (Modo Invitado). No se actualiza para los demás.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al guardar atleta local: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       await addDoc(athletesRef, {
         ...data,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      showNotification('Atleta añadido con éxito.');
+      showNotification('Atleta añadido con éxito en la nube.');
       return true;
     } catch (e) {
       console.error(e);
@@ -343,6 +577,27 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateAthlete = async (id, data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para editar datos, o activar el Modo Invitado.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, athletes);
+        const updated = currentList.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a);
+        setGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, updated);
+        setAthletes(updated);
+        showNotification('Atleta actualizado en este dispositivo.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al actualizar atleta: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       const ref = doc(athletesRef, id);
       await updateDoc(ref, {
@@ -359,6 +614,37 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteAthlete = async (id) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para eliminar datos, o activar el Modo Invitado.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, athletes);
+        const updated = currentList.filter(a => a.id !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.ATHLETES, updated);
+        setAthletes(updated);
+
+        // Borrar registros asociados locales
+        const currentRm = getGuestStorage(GUEST_STORAGE_KEYS.RM, rmRecords).filter(r => r.userId !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.RM, currentRm);
+        setRmRecords(currentRm);
+
+        const currentPwr = getGuestStorage(GUEST_STORAGE_KEYS.POWER, powerRecords).filter(r => r.userId !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.POWER, currentPwr);
+        setPowerRecords(currentPwr);
+
+        showNotification('Atleta y sus registros eliminados de la memoria local.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al eliminar atleta: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       const batch = writeBatch(db);
       batch.delete(doc(athletesRef, id));
@@ -377,12 +663,39 @@ export const AppProvider = ({ children }) => {
 
   // Operaciones de 1RM
   const addRMRecord = async (data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para registrar 1RM, o activar el Modo Invitado para guardar solo en este dispositivo.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const newRecord = {
+          id: `guest_rm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          ...data,
+          isGuestRecord: true,
+          createdAt: new Date().toISOString()
+        };
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.RM, rmRecords);
+        const updated = [newRecord, ...currentList];
+        setGuestStorage(GUEST_STORAGE_KEYS.RM, updated);
+        setRmRecords(updated);
+        showNotification('Registro 1RM guardado localmente (Modo Invitado).');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al guardar 1RM local: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       await addDoc(rmRecordsRef, {
         ...data,
         createdAt: serverTimestamp()
       });
-      showNotification('Registro 1RM guardado.');
+      showNotification('Registro 1RM guardado en la nube.');
       return true;
     } catch (e) {
       console.error(e);
@@ -392,6 +705,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteRMRecord = async (id) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para eliminar registros.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.RM, rmRecords);
+        const updated = currentList.filter(r => r.id !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.RM, updated);
+        setRmRecords(updated);
+        showNotification('Registro 1RM eliminado localmente.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       await deleteDoc(doc(rmRecordsRef, id));
       showNotification('Registro 1RM eliminado.');
@@ -405,12 +738,39 @@ export const AppProvider = ({ children }) => {
 
   // Operaciones de Potencia
   const addPowerRecord = async (data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para registrar potencia, o activar el Modo Invitado para guardar solo en este dispositivo.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const newRecord = {
+          id: `guest_pwr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          ...data,
+          isGuestRecord: true,
+          createdAt: new Date().toISOString()
+        };
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.POWER, powerRecords);
+        const updated = [newRecord, ...currentList];
+        setGuestStorage(GUEST_STORAGE_KEYS.POWER, updated);
+        setPowerRecords(updated);
+        showNotification('Registro de potencia guardado localmente (Modo Invitado).');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al guardar potencia local: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       await addDoc(powerRecordsRef, {
         ...data,
         createdAt: serverTimestamp()
       });
-      showNotification('Registro de potencia guardado.');
+      showNotification('Registro de potencia guardado en la nube.');
       return true;
     } catch (e) {
       console.error(e);
@@ -420,6 +780,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const deletePowerRecord = async (id) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para eliminar registros.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.POWER, powerRecords);
+        const updated = currentList.filter(r => r.id !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.POWER, updated);
+        setPowerRecords(updated);
+        showNotification('Registro de potencia eliminado localmente.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       await deleteDoc(doc(powerRecordsRef, id));
       showNotification('Registro de potencia eliminado.');
@@ -433,12 +813,39 @@ export const AppProvider = ({ children }) => {
 
   // Operaciones de Sesiones
   const addSession = async (data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para registrar sesiones, o activar el Modo Invitado para guardar solo en este dispositivo.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const newSession = {
+          id: `guest_ses_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          ...data,
+          isGuestRecord: true,
+          createdAt: new Date().toISOString()
+        };
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, sessions);
+        const updated = [newSession, ...currentList];
+        setGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, updated);
+        setSessions(updated);
+        showNotification('Sesión guardada localmente (Modo Invitado).');
+        return true;
+      } catch (e) {
+        console.error(e);
+        showNotification('Error al guardar sesión local: ' + e.message, true);
+        return false;
+      }
+    }
+
     try {
       await addDoc(sessionsRef, {
         ...data,
         createdAt: serverTimestamp()
       });
-      showNotification('Sesión guardada con éxito.');
+      showNotification('Sesión guardada con éxito en la nube.');
       return true;
     } catch (e) {
       console.error(e);
@@ -448,6 +855,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateSession = async (id, data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para actualizar sesiones, o activar el Modo Invitado.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, sessions);
+        const updated = currentList.map(s => s.id === id ? { ...s, ...data, updatedAt: new Date().toISOString() } : s);
+        setGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, updated);
+        setSessions(updated);
+        showNotification('Sesión actualizada localmente (Modo Invitado).');
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       await updateDoc(doc(sessionsRef, id), {
         ...data,
@@ -463,6 +890,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteSession = async (id) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para eliminar sesiones.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, sessions);
+        const updated = currentList.filter(s => s.id !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.SESSIONS, updated);
+        setSessions(updated);
+        showNotification('Sesión eliminada de la memoria local.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       await deleteDoc(doc(sessionsRef, id));
       showNotification('Sesión eliminada.');
@@ -476,6 +923,37 @@ export const AppProvider = ({ children }) => {
 
   // ---------------- Operaciones de Biblioteca de Ejercicios (Admin/Coach) ----------------
   const addExercise = async (category, exerciseData) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión o activar el Modo Invitado para añadir ejercicios.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const current = { ...exercises };
+        const cat = category.trim();
+        const catList = current[cat] ? [...current[cat]] : [];
+        if (catList.some(e => e.name.toLowerCase() === exerciseData.name.trim().toLowerCase())) {
+          showNotification('Ya existe un ejercicio con ese nombre en esta categoría.', true);
+          return false;
+        }
+        catList.push({
+          name: exerciseData.name.trim(),
+          description: exerciseData.description?.trim() || '',
+          requiresVelocity: Boolean(exerciseData.requiresVelocity)
+        });
+        current[cat] = catList;
+        setGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, current);
+        setExercises(current);
+        showNotification(`Ejercicio "${exerciseData.name}" añadido localmente (Modo Invitado).`);
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       const current = { ...exercises };
       const cat = category.trim();
@@ -501,6 +979,54 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateExercise = async (originalCategory, originalName, updatedData) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión o activar el Modo Invitado para editar ejercicios.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const current = { ...exercises };
+        const targetCategory = (updatedData.category || originalCategory).trim();
+        if (targetCategory !== originalCategory) {
+          if (current[originalCategory]) {
+            current[originalCategory] = current[originalCategory].filter(e => e.name !== originalName);
+            if (current[originalCategory].length === 0) {
+              delete current[originalCategory];
+            }
+          }
+          const newCatList = current[targetCategory] ? [...current[targetCategory]] : [];
+          newCatList.push({
+            name: updatedData.name.trim(),
+            description: updatedData.description?.trim() || '',
+            requiresVelocity: Boolean(updatedData.requiresVelocity)
+          });
+          current[targetCategory] = newCatList;
+        } else {
+          if (current[originalCategory]) {
+            current[originalCategory] = current[originalCategory].map(e => {
+              if (e.name === originalName) {
+                return {
+                  name: updatedData.name.trim(),
+                  description: updatedData.description?.trim() || '',
+                  requiresVelocity: Boolean(updatedData.requiresVelocity)
+                };
+              }
+              return e;
+            });
+          }
+        }
+        setGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, current);
+        setExercises(current);
+        showNotification(`Ejercicio "${updatedData.name}" actualizado localmente (Modo Invitado).`);
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       const current = { ...exercises };
       const targetCategory = (updatedData.category || originalCategory).trim();
@@ -547,6 +1073,31 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteExercise = async (category, exerciseName) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión o activar el Modo Invitado.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const current = { ...exercises };
+        if (current[category]) {
+          current[category] = current[category].filter(e => e.name !== exerciseName);
+          if (current[category].length === 0) {
+            delete current[category];
+          }
+        }
+        setGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, current);
+        setExercises(current);
+        showNotification(`Ejercicio "${exerciseName}" eliminado localmente.`);
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       const current = { ...exercises };
       if (current[category]) {
@@ -566,6 +1117,19 @@ export const AppProvider = ({ children }) => {
   };
 
   const resetDefaultExercises = async () => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para restablecer la biblioteca.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      setGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, DEFAULT_EXERCISES_DATA);
+      setExercises(DEFAULT_EXERCISES_DATA);
+      showNotification('Biblioteca de ejercicios restablecida localmente.');
+      return true;
+    }
+
     try {
       await setDoc(exercisesDocRef, DEFAULT_EXERCISES_DATA);
       showNotification('Biblioteca de ejercicios restablecida.');
@@ -579,6 +1143,36 @@ export const AppProvider = ({ children }) => {
 
   // ---------------- Operaciones de Grupos de Trabajo ----------------
   const addGroup = async (data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión o activar el Modo Invitado para crear grupos.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const newGroup = {
+          id: `guest_grp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          name: data.name,
+          color: data.color || '#ef4444',
+          description: data.description || '',
+          schedule: data.schedule || '',
+          athleteIds: data.athleteIds || [],
+          isGuestRecord: true,
+          createdAt: new Date().toISOString()
+        };
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.GROUPS, groups);
+        const updated = [...currentList, newGroup];
+        setGuestStorage(GUEST_STORAGE_KEYS.GROUPS, updated);
+        setGroups(updated);
+        showNotification(`Grupo "${data.name}" creado localmente (Modo Invitado).`);
+        return newGroup.id;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       const docRef = await addDoc(groupsRef, {
         name: data.name,
@@ -616,6 +1210,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateGroup = async (id, data) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para actualizar grupos.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.GROUPS, groups);
+        const updated = currentList.map(g => g.id === id ? { ...g, ...data } : g);
+        setGuestStorage(GUEST_STORAGE_KEYS.GROUPS, updated);
+        setGroups(updated);
+        showNotification(`Grupo "${data.name}" actualizado localmente.`);
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       const ref = doc(groupsRef, id);
       await updateDoc(ref, {
@@ -660,6 +1274,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteGroup = async (id) => {
+    if (!currentUser && !isGuestMode) {
+      showNotification('🔒 Debes iniciar sesión para eliminar grupos.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    if (!currentUser && isGuestMode) {
+      try {
+        const currentList = getGuestStorage(GUEST_STORAGE_KEYS.GROUPS, groups);
+        const updated = currentList.filter(g => g.id !== id);
+        setGuestStorage(GUEST_STORAGE_KEYS.GROUPS, updated);
+        setGroups(updated);
+        showNotification('Grupo de trabajo eliminado localmente.');
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
     try {
       await deleteDoc(doc(groupsRef, id));
       // Remover ID de grupo de todos los atletas que lo tengan
@@ -904,7 +1538,12 @@ export const AppProvider = ({ children }) => {
       loginWithEmail,
       registerWithEmail,
       loginWithGoogle,
-      logout
+      logout,
+      isGuestMode,
+      setGuestMode,
+      toggleGuestMode,
+      canRegister,
+      migrateGuestDataToCloud
     }}>
       {children}
     </AppContext.Provider>

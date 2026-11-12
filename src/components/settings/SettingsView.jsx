@@ -28,7 +28,8 @@ import {
   Copy,
   User,
   LogIn,
-  LogOut
+  LogOut,
+  HardDrive
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
@@ -62,7 +63,10 @@ export const SettingsView = () => {
     resetDefaultGym,
     currentUser,
     setIsAuthModalOpen,
-    logout
+    logout,
+    isGuestMode,
+    toggleGuestMode,
+    migrateGuestDataToCloud
   } = useApp();
 
   const [inputGymId, setInputGymId] = useState(activeGymId || '');
@@ -235,27 +239,71 @@ export const SettingsView = () => {
         </div>
 
         {currentUser ? (
-          <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-3">
+            <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-base shrink-0">
+                  {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{currentUser.displayName || 'Usuario de Máxima Potencia'}</span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      Sincronizado en la Nube
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">{currentUser.email}</p>
+                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">UID: {currentUser.uid}</p>
+                </div>
+              </div>
+              <div className="text-left sm:text-right text-[11px] text-slate-400">
+                <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Método de Acceso</span>
+                <span className="font-semibold text-slate-300">
+                  {currentUser.providerData?.[0]?.providerId === 'google.com' ? 'Google Account' : 'Email & Contraseña'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={migrateGuestDataToCloud}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all active:scale-95"
+            >
+              <Database className="w-4 h-4 text-emerald-400" />
+              <span>Sincronizar mis registros locales de invitado con la base central</span>
+            </button>
+          </div>
+        ) : isGuestMode ? (
+          <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-base shrink-0">
-                {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                <HardDrive className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">{currentUser.displayName || 'Usuario de Máxima Potencia'}</span>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    Sesión Activa
+                  <span className="text-sm font-bold text-white">Modo Invitado Activo</span>
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                    Solo LocalStorage
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 font-mono mt-0.5">{currentUser.email}</p>
-                <p className="text-[10px] text-slate-500 font-mono mt-0.5">UID: {currentUser.uid}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Tus atletas, 1RM y sesiones se guardan solo en la memoria de este teléfono y NO se actualizan en la nube.
+                </p>
               </div>
             </div>
-            <div className="text-left sm:text-right text-[11px] text-slate-400">
-              <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Método de Acceso</span>
-              <span className="font-semibold text-slate-300">
-                {currentUser.providerData?.[0]?.providerId === 'google.com' ? 'Google Account' : 'Email & Contraseña'}
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleGuestMode}
+                className="text-xs font-bold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl transition-all"
+              >
+                Desactivar Invitado
+              </button>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 underline"
+              >
+                Iniciar Sesión
+              </button>
             </div>
           </div>
         ) : (
@@ -265,16 +313,24 @@ export const SettingsView = () => {
                 <Shield className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Modo Invitado / Sin Sesión Iniciada</p>
-                <p className="text-xs text-slate-400">Inicia sesión con tu correo para vincular tu identidad de coach y acceder como administrador.</p>
+                <p className="text-sm font-semibold text-white">Modo Solo Lectura (Sin Sesión Iniciada)</p>
+                <p className="text-xs text-slate-400">Por seguridad, para registrar atletas o sesiones debes iniciar sesión o activar el Modo Invitado.</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="text-xs font-bold text-red-400 hover:text-red-300 underline"
-            >
-              ¿Tienes cuenta? Ingresa aquí
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleGuestMode}
+                className="text-xs font-bold px-3.5 py-2 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-xl transition-all active:scale-95"
+              >
+                Activar Modo Invitado
+              </button>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="text-xs font-bold text-red-400 hover:text-red-300 underline"
+              >
+                Iniciar Sesión
+              </button>
+            </div>
           </div>
         )}
       </div>
