@@ -26,3 +26,82 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #475569;
 }
+
+/* ========================================================
+   SISTEMA DE TEMAS Y PALETAS DE COLOR DINÁMICAS (Tailwind v4)
+   ======================================================== */
+
+/* Paleta: Azul Eléctrico */
+[data-theme="blue"], html[data-theme="blue"] {
+  --color-red-50: oklch(97% .014 254.6);
+  --color-red-100: oklch(93.2% .032 255.6);
+  --color-red-200: oklch(88.2% .059 254.1);
+  --color-red-300: oklch(80.9% .105 251.8);
+  --color-red-400: oklch(70.7% .165 254.6);
+  --color-red-500: oklch(62.3% .214 259.8);
+  --color-red-600: oklch(54.6% .245 262.9);
+  --color-red-700: oklch(48.8% .243 264.4);
+  --color-red-800: oklch(42.4% .199 265.6);
+  --color-red-900: oklch(37.9% .146 265.5);
+  --color-red-950: oklch(28.2% .091 267.9);
+}
+
+/* Paleta: Verde Esmeralda */
+[data-theme="emerald"], html[data-theme="emerald"] {
+  --color-red-50: oklch(97.9% .021 166.1);
+  --color-red-100: oklch(95% .04 163.3);
+  --color-red-200: oklch(90.5% .093 164.2);
+  --color-red-300: oklch(84.5% .143 165);
+  --color-red-400: oklch(76.5% .177 163.2);
+  --color-red-500: oklch(69.6% .17 162.5);
+  --color-red-600: oklch(59.6% .145 163.2);
+  --color-red-700: oklch(50.8% .118 165.6);
+  --color-red-800: oklch(43.2% .095 166.9);
+  --color-red-900: oklch(37.8% .077 168.9);
+  --color-red-950: oklch(26.2% .051 172.6);
+}
+
+/* Paleta: Morado Neón */
+[data-theme="purple"], html[data-theme="purple"] {
+  --color-red-50: oklch(97.7% .014 308.3);
+  --color-red-100: oklch(94.6% .033 307.2);
+  --color-red-200: oklch(90.2% .063 306.7);
+  --color-red-300: oklch(82.7% .119 306.4);
+  --color-red-400: oklch(71.4% .203 305.5);
+  --color-red-500: oklch(62.7% .265 303.9);
+  --color-red-600: oklch(55.8% .288 302.3);
+  --color-red-700: oklch(49.8% .27 301.9);
+  --color-red-800: oklch(43.8% .218 303.7);
+  --color-red-900: oklch(38.1% .176 305);
+  --color-red-950: oklch(29.1% .149 302.7);
+}
+
+/* Paleta: Oro Olímpico / Ámbar */
+[data-theme="amber"], html[data-theme="amber"] {
+  --color-red-50: oklch(98% .016 95);
+  --color-red-100: oklch(96.2% .044 95);
+  --color-red-200: oklch(92.4% .12 95);
+  --color-red-300: oklch(87.9% .169 91.6);
+  --color-red-400: oklch(82.8% .189 84.4);
+  --color-red-500: oklch(76.9% .188 70.1);
+  --color-red-600: oklch(66.6% .179 58.3);
+  --color-red-700: oklch(55.5% .163 49);
+  --color-red-800: oklch(47.3% .137 46.2);
+  --color-red-900: oklch(41.4% .112 45.9);
+  --color-red-950: oklch(27.9% .077 45.6);
+}
+
+/* Paleta: Cian Glaciar */
+[data-theme="cyan"], html[data-theme="cyan"] {
+  --color-red-50: oklch(98.4% .019 200.9);
+  --color-red-100: oklch(95.6% .045 203.4);
+  --color-red-200: oklch(91.7% .08 205);
+  --color-red-300: oklch(86.5% .127 207.1);
+  --color-red-400: oklch(78.9% .154 211.5);
+  --color-red-500: oklch(71.5% .143 215.2);
+  --color-red-600: oklch(60.9% .126 221.7);
+  --color-red-700: oklch(52% .105 223.1);
+  --color-red-800: oklch(45% .085 224.3);
+  --color-red-900: oklch(39.8% .07 227.4);
+  --color-red-950: oklch(30.2% .056 229.7);
+}

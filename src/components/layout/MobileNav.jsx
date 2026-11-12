@@ -8,7 +8,8 @@ import {
   TrendingUp, 
   CalendarPlus, 
   Menu, 
-  X 
+  X,
+  LayoutGrid
 } from 'lucide-react';
 
 export const MobileNav = () => {
@@ -24,54 +25,76 @@ export const MobileNav = () => {
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
-      {/* Backdrop */}
+      {/* Backdrop oscuro con blur */}
       {isOpen && (
         <div 
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 transition-opacity"
+          className="fixed inset-0 bg-black/80 backdrop-blur-xs z-40 transition-opacity animate-in fade-in duration-200"
         />
       )}
 
-      {/* Expanded Menu Drawer */}
+      {/* Expanded Menu Drawer (Bottom Sheet Completo) */}
       {isOpen && (
-        <div className="fixed bottom-14 left-0 right-0 z-50 bg-slate-900 border-t border-slate-800 p-4 rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-200">
-          <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Módulos</span>
+        <div className="fixed inset-x-0 bottom-0 z-50 bg-slate-900/98 backdrop-blur-md border-t border-slate-800 p-4 pb-20 sm:pb-16 rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-250 max-h-[88vh] flex flex-col">
+          {/* Barra de arrastre táctil */}
+          <div className="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto mb-2 shrink-0" />
+
+          {/* Cabecera del Cajón */}
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-800/80 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500">
+                <LayoutGrid className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-black text-white uppercase tracking-wider block">
+                  Módulos de Máxima Potencia
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  12 secciones disponibles
+                </span>
+              </div>
+            </div>
             <button 
               onClick={() => setIsOpen(false)} 
-              className="text-slate-400 hover:text-white p-1"
+              className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-2.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPanel === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    hapticTap();
-                    setCurrentPanel(item.id);
-                    setIsOpen(false);
-                  }}
-                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl text-xs font-medium transition-colors ${
-                    isActive
-                      ? 'bg-red-600 text-white font-semibold'
-                      : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  <Icon className="w-5 h-5 mb-1" />
-                  <span className="truncate w-full text-center">{item.name}</span>
-                </button>
-              );
-            })}
+
+          {/* Rejilla de Módulos (Amplia, visible al 100% sin cortes) */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-0.5 py-1">
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      hapticTap();
+                      setCurrentPanel(item.id);
+                      setIsOpen(false);
+                    }}
+                    className={`flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl transition-all active:scale-95 text-center ${
+                      isActive
+                        ? 'bg-red-600 text-white font-extrabold shadow-lg shadow-red-950/60 ring-2 ring-red-400/40'
+                        : 'bg-slate-800/85 hover:bg-slate-800 text-slate-200 border border-slate-700/60 shadow-xs'
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 mb-1.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <span className="text-xs font-bold tracking-tight truncate w-full block">
+                      {item.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Main Bar */}
+      {/* Main Bar Inferior Fija */}
       <nav 
         className="relative z-50 grid grid-cols-5 gap-1 p-1 bg-slate-900 border-t border-slate-800 shadow-xl"
         style={{ paddingBottom: 'max(0.35rem, env(safe-area-inset-bottom, 0px))' }}

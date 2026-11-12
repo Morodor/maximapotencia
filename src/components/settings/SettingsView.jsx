@@ -18,7 +18,9 @@ import {
   ExternalLink, 
   ChevronDown, 
   ChevronUp,
-  Sparkles
+  Sparkles,
+  Palette,
+  Check
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
@@ -42,7 +44,10 @@ export const SettingsView = () => {
     publishAppUpdate,
     checkForUpdatesManual,
     setIsUpdateModalOpen,
-    downloadAndInstallUpdate
+    downloadAndInstallUpdate,
+    appTheme,
+    changeTheme,
+    availableThemes
   } = useApp();
 
   const [coachName, setCoachName] = useState('');
@@ -242,6 +247,82 @@ export const SettingsView = () => {
           <Save className="w-4 h-4" />
           <span>Guardar Mi Perfil</span>
         </button>
+      </div>
+
+      {/* Sección: Paleta de Color y Personalización Visual */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-5 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Palette className="w-5 h-5 text-red-500" />
+              <span>Paleta de Color y Personalización</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Personaliza el color de acento principal de toda la aplicación (botones, gráficos, navegación y destacados).
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-slate-400 px-3 py-1 bg-slate-800/80 rounded-xl border border-slate-700 w-fit">
+            Tema Activo: <strong className="text-white capitalize">{availableThemes?.find(t => t.id === appTheme)?.name || appTheme}</strong>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+          {availableThemes?.map((theme) => {
+            const isSelected = (appTheme || 'red') === theme.id;
+            return (
+              <div
+                key={theme.id}
+                onClick={() => changeTheme(theme.id)}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all active:scale-98 flex flex-col justify-between relative overflow-hidden group ${
+                  isSelected
+                    ? 'bg-slate-800/90 border-slate-500 ring-2 ring-red-500 shadow-lg'
+                    : 'bg-slate-800/40 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'
+                }`}
+              >
+                {/* Indicador de selección */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span 
+                      className="w-7 h-7 rounded-full shadow-md flex items-center justify-center shrink-0 border-2 border-slate-900"
+                      style={{ backgroundColor: theme.colorHex }}
+                    >
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </span>
+                    <div>
+                      <p className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
+                        {theme.name}
+                      </p>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {theme.subtitle}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isSelected && (
+                    <span className="text-[10px] uppercase font-black bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
+                      Activo
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed mb-3">
+                  {theme.description}
+                </p>
+
+                {/* Vista previa miniatura de botón */}
+                <div className="pt-2 border-t border-slate-700/40 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 font-mono">Muestra visual:</span>
+                  <div 
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white shadow-xs flex items-center gap-1"
+                    style={{ backgroundColor: theme.colorHex }}
+                  >
+                    <span>Ejemplo</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Sección 3: Centro de Actualizaciones del Sistema */}

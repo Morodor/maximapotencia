@@ -29,6 +29,63 @@ import {
 
 const AppContext = createContext();
 
+export const AVAILABLE_THEMES = [
+  {
+    id: 'red',
+    name: 'Rojo Potencia',
+    subtitle: 'Identidad Clásica',
+    colorHex: '#ef4444',
+    bgClass: 'bg-red-600',
+    borderClass: 'border-red-500',
+    description: 'El estilo original de fuerza, garra y máxima intensidad.'
+  },
+  {
+    id: 'blue',
+    name: 'Azul Eléctrico',
+    subtitle: 'Enfoque Atlético',
+    colorHex: '#3b82f6',
+    bgClass: 'bg-blue-600',
+    borderClass: 'border-blue-500',
+    description: 'Enfoque deportivo, velocidad, concentración y rendimiento.'
+  },
+  {
+    id: 'emerald',
+    name: 'Verde Esmeralda',
+    subtitle: 'Salud y Vitalidad',
+    colorHex: '#10b981',
+    bgClass: 'bg-emerald-600',
+    borderClass: 'border-emerald-500',
+    description: 'Potencia biológica, recuperación activa y constancia.'
+  },
+  {
+    id: 'purple',
+    name: 'Morado Neón',
+    subtitle: 'Cyber Pro',
+    colorHex: '#8b5cf6',
+    bgClass: 'bg-purple-600',
+    borderClass: 'border-purple-500',
+    description: 'Estilo moderno, futurista y de categoría élite.'
+  },
+  {
+    id: 'amber',
+    name: 'Oro Olímpico',
+    subtitle: 'Fuerza y Récords',
+    colorHex: '#f59e0b',
+    bgClass: 'bg-amber-600',
+    borderClass: 'border-amber-500',
+    description: 'Inspirado en los récords dorados, podio y disciplina.'
+  },
+  {
+    id: 'cyan',
+    name: 'Cian Glaciar',
+    subtitle: 'Ciencia y VBT',
+    colorHex: '#06b6d4',
+    bgClass: 'bg-cyan-600',
+    borderClass: 'border-cyan-500',
+    description: 'Tecnología, ciencia aplicada al deporte y alta precisión.'
+  }
+];
+
 export const AppProvider = ({ children }) => {
   const [currentPanel, setCurrentPanel] = useState('dashboard');
   const [athletes, setAthletes] = useState([]);
@@ -50,6 +107,31 @@ export const AppProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);
   const [appUpdateInfo, setAppUpdateInfo] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  // Paleta de color y tema de la aplicación
+  const [appTheme, setAppTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mp_app_theme') || 'red';
+      document.documentElement.setAttribute('data-theme', saved);
+      return saved;
+    } catch {
+      return 'red';
+    }
+  });
+
+  const changeTheme = (themeId) => {
+    try {
+      localStorage.setItem('mp_app_theme', themeId);
+    } catch (e) {}
+    setAppTheme(themeId);
+    document.documentElement.setAttribute('data-theme', themeId);
+    const chosen = AVAILABLE_THEMES.find(t => t.id === themeId);
+    showNotification(`Paleta "${chosen?.name || themeId}" activada.`);
+  };
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', appTheme);
+  }, [appTheme]);
 
   // Comprobar si hay una versión superior disponible
   const hasUpdateAvailable = isNewerVersion(appUpdateInfo?.latestVersion, CURRENT_APP_VERSION);
@@ -615,7 +697,10 @@ export const AppProvider = ({ children }) => {
       setIsUpdateModalOpen,
       publishAppUpdate,
       checkForUpdatesManual,
-      downloadAndInstallUpdate
+      downloadAndInstallUpdate,
+      appTheme,
+      changeTheme,
+      availableThemes: AVAILABLE_THEMES
     }}>
       {children}
     </AppContext.Provider>
