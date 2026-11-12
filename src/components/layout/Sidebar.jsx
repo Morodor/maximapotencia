@@ -13,7 +13,8 @@ import {
   Trophy, 
   Youtube, 
   HelpCircle, 
-  Settings 
+  Settings,
+  User 
 } from 'lucide-react';
 
 export const navItems = [
@@ -32,7 +33,7 @@ export const navItems = [
 ];
 
 export const Sidebar = () => {
-  const { currentPanel, setCurrentPanel } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen } = useApp();
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-4">
@@ -48,6 +49,33 @@ export const Sidebar = () => {
               <span className="text-xs font-mono text-red-400 font-semibold">v2.0 Pro</span>
             </div>
           </div>
+        </div>
+
+        {/* Acceso Rápido a Cuenta / Perfil */}
+        <div className="p-2 border-b border-slate-700/50">
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-700/60 hover:border-slate-600 transition-all text-left group"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                currentUser ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-600/20 text-red-400 border border-red-500/30'
+              }`}>
+                {currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-4 h-4" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
+                  {currentUser ? (currentUser.displayName || currentUser.email?.split('@')[0]) : 'Iniciar Sesión'}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate">
+                  {currentUser ? currentUser.email : 'Cuenta & Acceso'}
+                </p>
+              </div>
+            </div>
+            {currentUser && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+            )}
+          </button>
         </div>
 
         {/* Navigation list */}
