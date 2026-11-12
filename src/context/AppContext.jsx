@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { 
   getGymRefs,
   getActiveGymId,
@@ -14,6 +17,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  signInWithCredential,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -203,7 +207,7 @@ export const AppProvider = ({ children }) => {
   const canRegister = Boolean(currentUser || isGuestMode);
 
   useEffect(() => {
-    // Procesar retorno de autenticación por redirección (móviles y navegadores con bloqueo de popup)
+    // Procesar retorno de autenticación por redirección (móviles y navegadores con bloqueo de popup en web)
     getRedirectResult(auth)
       .then((res) => {
         if (res && res.user) {
@@ -214,6 +218,39 @@ export const AppProvider = ({ children }) => {
         console.warn('Redirect auth result warning:', err?.message || err);
       });
 
+    // Listener para app nativa (Android) al recibir el callback maximapotencia://auth-callback
+    let appUrlOpenHandle = null;
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener('appUrlOpen', async (data) => {
+        try {
+          if (!data?.url) return;
+          if (data.url.includes('auth-callback')) {
+            const queryIndex = data.url.indexOf('?');
+            const queryStr = queryIndex !== -1 ? data.url.substring(queryIndex + 1) : '';
+            const params = new URLSearchParams(queryStr);
+            const idToken = params.get('idToken');
+            const accessToken = params.get('accessToken');
+            const emailParam = params.get('email');
+
+            // Cerrar la pestaña de Chrome Custom Tab
+            await Browser.close().catch(() => {});
+
+            if (idToken || accessToken) {
+              const credential = GoogleAuthProvider.credential(idToken || null, accessToken || null);
+              const userCred = await signInWithCredential(auth, credential);
+              showNotification(`¡Sesión iniciada con Google: ${userCred.user.displayName || userCred.user.email || emailParam}!`);
+              setIsAuthModalOpen(false);
+            }
+          }
+        } catch (authErr) {
+          console.error('Error al completar inicio de sesión con Google nativo:', authErr);
+          showNotification('Error al autenticar con Google en la app: ' + (authErr.message || authErr), true);
+        }
+      }).then(handle => {
+        appUrlOpenHandle = handle;
+      });
+    }
+
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
@@ -223,7 +260,13 @@ export const AppProvider = ({ children }) => {
         } catch (e) {}
       }
     });
-    return () => unsubAuth();
+
+    return () => {
+      unsubAuth();
+      if (appUrlOpenHandle && typeof appUrlOpenHandle.remove === 'function') {
+        appUrlOpenHandle.remove();
+      }
+    };
   }, []);
 
   const loginWithEmail = async (email, password) => {
@@ -258,15 +301,13 @@ export const AppProvider = ({ children }) => {
 
   const loginWithGoogle = async () => {
     try {
-      // En la app nativa instalada (Capacitor Android), el redirect web a localhost es rechazado por Chrome
-      const isNative = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform?.();
-      if (isNative) {
-        return {
-          success: false,
-          isNativeAlert: true,
-          error: 'NATIVE_USE_EMAIL',
-          message: 'En la app instalada en Android, inicia sesión con tu Correo y Contraseña oficial. Si aún no tienes contraseña para tu cuenta de Google, pulsa "¿Olvidaste o no tienes contraseña?" para recibir el enlace en tu correo.'
-        };
+      // En la app nativa instalada (Capacitor Android), abrimos el puente seguro en Firebase Hosting
+      if (Capacitor.isNativePlatform()) {
+        await Browser.open({
+          url: 'https://maximapotencia-bd31e.firebaseapp.com/google-auth.html',
+          windowName: '_self'
+        });
+        return { success: true, redirecting: true };
       }
 
       const provider = new GoogleAuthProvider();

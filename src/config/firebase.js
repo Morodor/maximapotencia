@@ -9,7 +9,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult
+  getRedirectResult,
+  signInWithCredential
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -127,5 +128,6 @@ export {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult
+  getRedirectResult,
+  signInWithCredential
 };

@@ -121,12 +121,8 @@ export const AuthModal = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const res = await loginWithGoogle();
-      if (res?.isNativeAlert) {
-        setErrorMsg(res.message);
-        return;
-      }
       if (res?.redirecting) {
-        // Redirigiendo a Google de forma segura...
+        // Redirigiendo a Google mediante ventana autorizada...
         return;
       }
       if (res?.success) {
