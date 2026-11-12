@@ -33,7 +33,7 @@ const ModuleFallback = () => (
 );
 
 const MainContent = () => {
-  const { currentPanel, loading, isUpdateModalOpen, setIsUpdateModalOpen } = useApp();
+  const { currentPanel, loading, isUpdateModalOpen, setIsUpdateModalOpen, currentAppVersion } = useApp();
 
   const renderPanel = () => {
     switch (currentPanel) {
@@ -89,7 +89,7 @@ const MainContent = () => {
 
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-slate-900 text-center text-xs text-slate-600">
-          <p>Máxima Potencia v2.0 • Plataforma de Rendimiento Deportivo y Fuerza</p>
+          <p>Máxima Potencia v{currentAppVersion || '2.1.0'} • Plataforma de Rendimiento Deportivo y Fuerza</p>
         </footer>
       </main>
 

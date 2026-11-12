@@ -33,7 +33,7 @@ export const navItems = [
 ];
 
 export const Sidebar = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, currentAppVersion } = useApp();
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-4">
@@ -46,7 +46,7 @@ export const Sidebar = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">Máxima Potencia</h1>
-              <span className="text-xs font-mono text-red-400 font-semibold">v2.0 Pro</span>
+              <span className="text-xs font-mono text-red-400 font-semibold">v{currentAppVersion || '2.1.0'} Pro</span>
             </div>
           </div>
         </div>
