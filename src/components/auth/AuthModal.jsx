@@ -50,6 +50,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
     logout,
     currentCoach,
     isHeadCoach,
+    isSuperAdmin,
     showNotification,
     isGuestMode,
     setGuestMode,
@@ -206,9 +207,16 @@ export const AuthModal = ({ isOpen, onClose }) => {
                   <p className="text-[11px] text-slate-500 font-mono mt-1">UID: {currentUser.uid.slice(0, 12)}...</p>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-center gap-2">
-                  <Crown className="w-4 h-4 text-amber-400" />
-                  <span>Perfil: <strong>{currentCoach?.name || 'Head Coach'}</strong></span>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex flex-col items-center justify-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span>Perfil: <strong>{currentCoach?.name || 'Head Coach'}</strong></span>
+                  </div>
+                  {isSuperAdmin && (
+                    <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-0.5">
+                      Super Administrador General
+                    </span>
+                  )}
                 </div>
               </div>
 

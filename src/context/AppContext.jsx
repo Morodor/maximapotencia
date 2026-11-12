@@ -1386,20 +1386,33 @@ export const AppProvider = ({ children }) => {
     );
   };
 
-  // ---------------- Entrenador Activo y Permisos (RBAC) ----------------
-  const currentCoach = coaches.find(c => c.id === currentCoachId) || 
+  // ---------------- Super Admin & Roles (RBAC) ----------------
+  const SUPER_ADMIN_EMAILS = [
+    'bayron.quezada@gmail.com',
+    'unchainedfreemusic@gmail.com'
+  ];
+
+  const isSuperAdmin = Boolean(
+    currentUser && 
+    currentUser.email && 
+    SUPER_ADMIN_EMAILS.includes(currentUser.email.toLowerCase().trim())
+  );
+
+  // Entrenador Activo y Permisos
+  const currentCoach = (isSuperAdmin ? coaches.find(c => c.name?.toLowerCase().includes('bayron')) : null) ||
+    coaches.find(c => c.id === currentCoachId) || 
     coaches.find(c => c.role === 'head_coach') || 
     coaches[0] || {
       id: 'default-hc',
-      name: profile?.displayName || 'Bayron Quezada',
+      name: isSuperAdmin ? 'Bayron Quezada' : (profile?.displayName || 'Bayron Quezada'),
       role: 'head_coach',
-      title: 'Head Coach & Administrador',
+      title: isSuperAdmin ? 'Super Admin & Creador' : 'Head Coach & Administrador',
       color: '#ef4444',
       assignedGroupIds: [],
       canViewAllAthletes: true
     };
 
-  const isHeadCoach = currentCoach?.role === 'head_coach';
+  const isHeadCoach = isSuperAdmin || currentCoach?.role === 'head_coach';
 
   // Verifica si el entrenador activo tiene acceso para gestionar un grupo
   const hasAccessToGroup = (groupId) => {
@@ -1485,6 +1498,10 @@ export const AppProvider = ({ children }) => {
   const deleteCoach = async (id) => {
     try {
       const target = coaches.find(c => c.id === id);
+      if (target?.name?.toLowerCase().includes('bayron') || target?.email?.toLowerCase().includes('bayron.quezada')) {
+        showNotification('El Super Admin principal no puede ser eliminado.', true);
+        return false;
+      }
       if (target?.role === 'head_coach' && coaches.filter(c => c.role === 'head_coach').length <= 1) {
         showNotification('No puedes eliminar al único Head Coach del gimnasio.', true);
         return false;
@@ -1545,6 +1562,7 @@ export const AppProvider = ({ children }) => {
       coaches,
       currentCoach,
       isHeadCoach,
+      isSuperAdmin,
       hasAccessToGroup,
       hasAccessToAthlete,
       rmRecords,

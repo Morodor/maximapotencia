@@ -14,7 +14,8 @@ import {
   Youtube, 
   HelpCircle, 
   Settings,
-  User 
+  User,
+  Crown 
 } from 'lucide-react';
 
 export const navItems = [
@@ -33,7 +34,7 @@ export const navItems = [
 ];
 
 export const Sidebar = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, currentAppVersion } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, currentAppVersion, isSuperAdmin } = useApp();
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-4">
@@ -59,29 +60,36 @@ export const Sidebar = () => {
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                currentUser 
+                isSuperAdmin
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-1 ring-amber-500/30'
+                  : currentUser 
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
                   : isGuestMode
                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                   : 'bg-red-600/20 text-red-400 border border-red-500/30'
               }`}>
-                {currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-4 h-4" />}
+                {isSuperAdmin ? <Crown className="w-4 h-4 text-amber-400" /> : currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-4 h-4" />}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
-                  {currentUser 
+                <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors flex items-center gap-1">
+                  <span>{currentUser 
                     ? (currentUser.displayName || currentUser.email?.split('@')[0]) 
                     : isGuestMode
                     ? 'Modo Invitado'
-                    : 'Iniciar Sesión'}
+                    : 'Iniciar Sesión'}</span>
+                  {isSuperAdmin && (
+                    <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-black tracking-wide">
+                      ADMIN
+                    </span>
+                  )}
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">
-                  {currentUser ? currentUser.email : isGuestMode ? 'Solo LocalStorage' : 'Cuenta & Acceso'}
+                  {isSuperAdmin ? 'Super Admin • Control Total' : currentUser ? currentUser.email : isGuestMode ? 'Solo LocalStorage' : 'Cuenta & Acceso'}
                 </p>
               </div>
             </div>
             {currentUser && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isSuperAdmin ? 'bg-amber-400' : 'bg-emerald-500'}`}></span>
             )}
             {isGuestMode && !currentUser && (
               <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>

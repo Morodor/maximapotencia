@@ -168,6 +168,11 @@ export const CoachManagementModal = ({ isOpen, onClose }) => {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-base font-bold text-white">{c.name}</h4>
+                          {c.name?.toLowerCase().includes('bayron') && (
+                            <span className="text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                              ⚡ Super Admin
+                            </span>
+                          )}
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                             isHead
                               ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
@@ -229,7 +234,7 @@ export const CoachManagementModal = ({ isOpen, onClose }) => {
                           <span>Editar</span>
                         </button>
 
-                        {!(isHead && coaches.filter(x => x.role === 'head_coach').length <= 1) && (
+                        {!(isHead && coaches.filter(x => x.role === 'head_coach').length <= 1) && !c.name?.toLowerCase().includes('bayron') && (
                           <button
                             onClick={() => setCoachToDelete(c)}
                             className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
