@@ -63,6 +63,8 @@ export const SettingsView = () => {
     switchGym,
     resetDefaultGym,
     currentUser,
+    isSuperAdmin,
+    setCurrentPanel,
     setIsAuthModalOpen,
     logout,
     isGuestMode,
@@ -342,6 +344,37 @@ export const SettingsView = () => {
           </div>
         )}
       </div>
+
+      {/* Tarjeta Exclusiva de Acceso a Consola Super Admin */}
+      {isSuperAdmin && (
+        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center font-black shadow-md shrink-0">
+              <Crown className="w-6 h-6 fill-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-black tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full">
+                  Exclusivo Super Admin
+                </span>
+                <span className="text-xs font-mono text-slate-400 font-bold">{currentUser?.email}</span>
+              </div>
+              <h4 className="text-base font-bold text-white mt-0.5">Consola Central de Super Administrador</h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Control total de usuarios, roles, publicaciones OTA y comunicados comunitarios del gimnasio.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setCurrentPanel('admin')}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-950/40 transition-all active:scale-95 shrink-0"
+          >
+            <Crown className="w-4 h-4 fill-slate-950" />
+            <span>Abrir Consola Super Admin</span>
+          </button>
+        </div>
+      )}
 
       {/* Sección 1: Equipo de Entrenadores y Jerarquía (RBAC) */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">

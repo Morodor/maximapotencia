@@ -1440,7 +1440,8 @@ export const AppProvider = ({ children }) => {
   );
 
   // Entrenador Activo y Permisos
-  const currentCoach = (isSuperAdmin ? coaches.find(c => c.name?.toLowerCase().includes('bayron')) : null) ||
+  const currentCoach = (isSuperAdmin ? coaches.find(c => c.name?.toLowerCase().includes('bayron') || (c.email && c.email.toLowerCase() === 'bayron.quezada@gmail.com')) : null) ||
+    (currentUser?.email ? coaches.find(c => c.email && c.email.toLowerCase() === currentUser.email.toLowerCase()) : null) ||
     coaches.find(c => c.id === currentCoachId) || 
     coaches.find(c => c.role === 'head_coach') || 
     coaches[0] || {
@@ -1583,6 +1584,22 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Publicar o actualizar el comunicado global en Firestore (Solo Super Admin)
+  const updateAnnouncement = async (announcementData) => {
+    try {
+      await setDoc(appUpdateDocRef, {
+        announcement: announcementData,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      showNotification('Comunicado global actualizado para todos los usuarios.');
+      return true;
+    } catch (err) {
+      console.error('Error al actualizar comunicado:', err);
+      showNotification('Error al guardar comunicado: ' + err.message, true);
+      return false;
+    }
+  };
+
   // Comprobar manualmente si hay actualizaciones (desde Ajustes)
   const checkForUpdatesManual = () => {
     if (hasUpdateAvailable) {
@@ -1643,6 +1660,7 @@ export const AppProvider = ({ children }) => {
       isUpdateModalOpen,
       setIsUpdateModalOpen,
       publishAppUpdate,
+      updateAnnouncement,
       checkForUpdatesManual,
       downloadAndInstallUpdate,
       appTheme,

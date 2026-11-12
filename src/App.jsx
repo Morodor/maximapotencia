@@ -7,6 +7,7 @@ import { Notification } from './components/layout/Notification';
 import { FloatingTimer } from './components/common/FloatingTimer';
 import { UpdateBanner } from './components/system/UpdateBanner';
 import { UpdateModal } from './components/system/UpdateModal';
+import { AnnouncementBanner } from './components/system/AnnouncementBanner';
 import { Loader2 } from 'lucide-react';
 
 // Carga perezosa (Code Splitting) para rendimiento móvil óptimo
@@ -22,6 +23,7 @@ const UtilitiesView = lazy(() => import('./components/utilities/UtilitiesView').
 const AchievementsView = lazy(() => import('./components/achievements/AchievementsView').then(m => ({ default: m.AchievementsView })));
 const GuideView = lazy(() => import('./components/guide/GuideView').then(m => ({ default: m.GuideView })));
 const SettingsView = lazy(() => import('./components/settings/SettingsView').then(m => ({ default: m.SettingsView })));
+const AdminView = lazy(() => import('./components/admin/AdminView').then(m => ({ default: m.AdminView })));
 
 const ModuleFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center animate-in fade-in">
@@ -61,6 +63,8 @@ const MainContent = () => {
         return <GuideView />;
       case 'settings':
         return <SettingsView />;
+      case 'admin':
+        return <AdminView />;
       default:
         return <DashboardView />;
     }
@@ -78,6 +82,9 @@ const MainContent = () => {
       >
         {/* Banner de Actualización Disponible */}
         <UpdateBanner />
+
+        {/* Banner de Comunicado Comunitario */}
+        <AnnouncementBanner />
 
         <Header />
         

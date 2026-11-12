@@ -99,6 +99,27 @@ export const Sidebar = () => {
 
         {/* Navigation list */}
         <nav className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+          {isSuperAdmin && (
+            <button
+              onClick={() => setCurrentPanel('admin')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all duration-150 mb-2 border ${
+                currentPanel === 'admin'
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-950/40'
+                  : 'bg-amber-950/20 text-amber-300 border-amber-500/30 hover:bg-amber-950/40 hover:border-amber-500/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Crown className={`w-4 h-4 ${currentPanel === 'admin' ? 'text-slate-950 fill-slate-950' : 'text-amber-400'}`} />
+                <span>Super Admin</span>
+              </div>
+              <span className={`text-[9px] uppercase px-1.5 py-0.2 rounded font-black tracking-wider ${
+                currentPanel === 'admin' ? 'bg-slate-950 text-amber-300' : 'bg-amber-500/20 text-amber-300'
+              }`}>
+                Panel
+              </span>
+            </button>
+          )}
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPanel === item.id;

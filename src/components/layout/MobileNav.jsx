@@ -11,11 +11,12 @@ import {
   X,
   LayoutGrid,
   User,
-  ChevronRight
+  ChevronRight,
+  Crown
 } from 'lucide-react';
 
 export const MobileNav = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, isSuperAdmin } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   const mainButtons = [
@@ -151,6 +152,34 @@ export const MobileNav = () => {
                   {currentUser ? 'Perfil' : isGuestMode ? 'Invitado' : 'Ingresar'}
                 </span>
               </button>
+
+              {/* Botón Consola Super Admin (Solo visible para Super Admin) */}
+              {isSuperAdmin && (
+                <button
+                  onClick={() => {
+                    hapticTap();
+                    setCurrentPanel('admin');
+                    setIsOpen(false);
+                  }}
+                  className={`flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl transition-all active:scale-95 text-center border shadow-xs relative overflow-hidden group ${
+                    currentPanel === 'admin'
+                      ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-lg'
+                      : 'bg-gradient-to-b from-amber-950/40 to-slate-900 border-amber-500/40 text-amber-300'
+                  }`}
+                >
+                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center mb-1 shrink-0 ${
+                    currentPanel === 'admin' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-400'
+                  }`}>
+                    <Crown className="w-4 h-4 fill-current" />
+                  </div>
+                  <span className="text-xs font-bold tracking-tight truncate w-full block">
+                    Super Admin
+                  </span>
+                  <span className="text-[9px] text-amber-400/80 mt-0.5 truncate w-full block font-bold">
+                    Consola
+                  </span>
+                </button>
+              )}
 
               {navItems.map((item) => {
                 const Icon = item.icon;
