@@ -11,6 +11,8 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -200,6 +202,17 @@ export const AppProvider = ({ children }) => {
   const canRegister = Boolean(currentUser || isGuestMode);
 
   useEffect(() => {
+    // Procesar retorno de autenticación por redirección (móviles y navegadores con bloqueo de popup)
+    getRedirectResult(auth)
+      .then((res) => {
+        if (res && res.user) {
+          showNotification(`¡Sesión iniciada con Google: ${res.user.displayName || res.user.email}!`);
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect auth result warning:', err?.message || err);
+      });
+
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
@@ -233,8 +246,31 @@ export const AppProvider = ({ children }) => {
   const loginWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
-      return { success: true, user: cred.user };
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      // En móviles o webviews, signInWithRedirect evita que el navegador se quede en blanco en /__/auth/handler
+      const isMobileDevice = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+      if (isMobileDevice) {
+        await signInWithRedirect(auth, provider);
+        return { success: true, redirecting: true };
+      }
+
+      try {
+        const cred = await signInWithPopup(auth, provider);
+        return { success: true, user: cred.user };
+      } catch (popupErr) {
+        if (
+          popupErr.code === 'auth/popup-blocked' || 
+          popupErr.code === 'auth/cancelled-popup-request' ||
+          popupErr.code === 'auth/popup-closed-by-user'
+        ) {
+          console.warn('Popup bloqueado o no soportado, iniciando redirección:', popupErr);
+          await signInWithRedirect(auth, provider);
+          return { success: true, redirecting: true };
+        }
+        throw popupErr;
+      }
     } catch (err) {
       return { success: false, error: err.code || err.message };
     }

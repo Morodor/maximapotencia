@@ -9,8 +9,8 @@ const SUITE_STORAGE_KEY = 'mp_suite_config';
 export const DEFAULT_SUITE_CONFIG = {
   speedTracker: {
     name: 'Speed Tracker',
-    packageName: 'com.speedtracker.app',
-    alternativePackages: ['com.bayronquezada.speedtracker', 'com.speedtracker'],
+    packageName: 'com.speedtracker',
+    alternativePackages: ['com.speedtracker.app', 'com.bayronquezada.speedtracker'],
     scheme: 'speedtracker://',
     webUrl: 'https://speedtracker.web.app',
     enabled: true
@@ -22,12 +22,20 @@ export const getSuiteConfig = () => {
     const saved = localStorage.getItem(SUITE_STORAGE_KEY);
     if (!saved) return DEFAULT_SUITE_CONFIG;
     const parsed = JSON.parse(saved);
+    
+    // Migrar si tenía guardado el ID anterior con .app
+    let currentPkg = parsed.speedTracker?.packageName;
+    if (currentPkg === 'com.speedtracker.app') {
+      currentPkg = 'com.speedtracker';
+    }
+
     return {
       ...DEFAULT_SUITE_CONFIG,
       ...parsed,
       speedTracker: {
         ...DEFAULT_SUITE_CONFIG.speedTracker,
-        ...(parsed.speedTracker || {})
+        ...(parsed.speedTracker || {}),
+        packageName: currentPkg || DEFAULT_SUITE_CONFIG.speedTracker.packageName
       }
     };
   } catch (e) {
@@ -64,6 +72,12 @@ export const checkSpeedTrackerInstalled = async () => {
     try {
       const res = await plugin.isAppInstalled({ packageName: pkg });
       if (res && res.installed) {
+        if (config.speedTracker.packageName !== pkg) {
+          saveSuiteConfig({
+            ...config,
+            speedTracker: { ...config.speedTracker, packageName: pkg }
+          });
+        }
         return { installed: true, packageName: pkg };
       }
     } catch {

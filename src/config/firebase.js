@@ -6,7 +6,9 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -28,9 +30,19 @@ import {
   where
 } from 'firebase/firestore';
 
+export const resolveAuthDomain = () => {
+  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+    const host = window.location.hostname;
+    if (host.endsWith('web.app') || host.endsWith('firebaseapp.com')) {
+      return host;
+    }
+  }
+  return "maximapotencia.firebaseapp.com";
+};
+
 export const firebaseConfig = {
   apiKey: "AIzaSyB6m3ed6Wt1bCpP0tcyPf_YklreiEqB4OE",
-  authDomain: "maximapotencia-bd31e.firebaseapp.com",
+  authDomain: resolveAuthDomain(),
   projectId: "maximapotencia-bd31e",
   storageBucket: "maximapotencia-bd31e.firebasestorage.app",
   messagingSenderId: "629587208455",
@@ -121,5 +133,7 @@ export {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 };

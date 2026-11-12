@@ -100,11 +100,15 @@ export const AuthModal = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const res = await loginWithGoogle();
-      if (res.success) {
+      if (res?.redirecting) {
+        // Redirigiendo a Google de forma segura...
+        return;
+      }
+      if (res?.success) {
         showNotification(`¡Sesión iniciada con Google: ${res.user?.email}!`);
         onClose();
       } else {
-        setErrorMsg(formatAuthError(res.error));
+        setErrorMsg(formatAuthError(res?.error));
       }
     } catch (err) {
       setErrorMsg(err.message);

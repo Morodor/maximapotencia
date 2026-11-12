@@ -229,25 +229,22 @@ public class ApkInstallerPlugin extends Plugin {
         try {
             Intent intent = null;
 
-            // 1. Si viene scheme/URI explícito (ej: speedtracker://vbt?...), intentar por ACTION_VIEW
-            if (scheme != null && !scheme.trim().isEmpty()) {
-                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(scheme));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // 1. Prioridad: Buscar Intent de lanzamiento directo por paquete si se especificó
+            if (packageName != null && !packageName.trim().isEmpty()) {
+                intent = context.getPackageManager().getLaunchIntentForPackage(packageName);
             }
 
-            // 2. Si no o si se especificó packageName, buscar Launch Intent de la app
-            if (intent == null || (packageName != null && !packageName.trim().isEmpty())) {
-                Intent launchIntent = null;
-                if (packageName != null && !packageName.trim().isEmpty()) {
-                    launchIntent = context.getPackageManager().getLaunchIntentForPackage(packageName);
-                }
-                if (launchIntent != null) {
-                    intent = launchIntent;
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // 2. Si no se encontró launcher o viene scheme, verificar si el scheme resuelve
+            if (intent == null && scheme != null && !scheme.trim().isEmpty()) {
+                Intent schemeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(scheme));
+                schemeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (schemeIntent.resolveActivity(context.getPackageManager()) != null) {
+                    intent = schemeIntent;
                 }
             }
 
             if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 // Adjuntar extras opcionales si vienen
                 if (extras != null) {
                     for (java.util.Iterator<String> it = extras.keys(); it.hasNext(); ) {

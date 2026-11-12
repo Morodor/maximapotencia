@@ -45,6 +45,7 @@
 
     <!-- Visibilidad de paquetes para Android 11+ (Suite Máxima Potencia & Speed Tracker) -->
     <queries>
+        <package android:name="com.speedtracker" />
         <package android:name="com.speedtracker.app" />
         <package android:name="com.bayronquezada.speedtracker" />
         <intent>

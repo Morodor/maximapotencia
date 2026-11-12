@@ -86,7 +86,7 @@ export const SpeedTrackerModal = ({
       ...suiteConfig,
       speedTracker: {
         ...suiteConfig.speedTracker,
-        packageName: pkgInput.trim() || 'com.speedtracker.app',
+        packageName: pkgInput.trim() || 'com.speedtracker',
         scheme: schemeInput.trim() || 'speedtracker://'
       }
     };
@@ -204,11 +204,11 @@ export const SpeedTrackerModal = ({
                   type="text"
                   value={pkgInput}
                   onChange={e => setPkgInput(e.target.value)}
-                  placeholder="com.speedtracker.app"
+                  placeholder="com.speedtracker"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
                 <span className="text-[10px] text-slate-500 block mt-1">
-                  Ejemplo: com.speedtracker.app o com.bayronquezada.speedtracker
+                  Ejemplo: com.speedtracker o com.bayronquezada.speedtracker
                 </span>
               </div>
 

@@ -116,7 +116,7 @@ export const SettingsView = () => {
   useEffect(() => {
     const cfg = getSuiteConfig();
     setSuiteConfig(cfg);
-    setSuitePackage(cfg.speedTracker?.packageName || 'com.speedtracker.app');
+    setSuitePackage(cfg.speedTracker?.packageName || 'com.speedtracker');
     setSuiteScheme(cfg.speedTracker?.scheme || 'speedtracker://');
     setSuiteWebUrl(cfg.speedTracker?.webUrl || 'https://speedtracker.web.app');
   }, []);
@@ -127,7 +127,7 @@ export const SettingsView = () => {
       ...suiteConfig,
       speedTracker: {
         ...suiteConfig.speedTracker,
-        packageName: suitePackage.trim() || 'com.speedtracker.app',
+        packageName: suitePackage.trim() || 'com.speedtracker',
         scheme: suiteScheme.trim() || 'speedtracker://',
         webUrl: suiteWebUrl.trim() || 'https://speedtracker.web.app'
       }
@@ -815,7 +815,7 @@ export const SettingsView = () => {
                 type="text"
                 value={suitePackage}
                 onChange={e => setSuitePackage(e.target.value)}
-                placeholder="com.speedtracker.app"
+                placeholder="com.speedtracker"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">
