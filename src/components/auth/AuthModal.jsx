@@ -46,6 +46,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
     loginWithEmail, 
     registerWithEmail, 
     loginWithGoogle, 
+    sendResetPassword,
     logout,
     currentCoach,
     isHeadCoach,
@@ -62,8 +63,27 @@ export const AuthModal = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   if (!isOpen) return null;
+
+  const handlePasswordReset = async () => {
+    if (!email || !email.includes('@')) {
+      setErrorMsg('Escribe tu correo arriba para enviarte el enlace de contraseña.');
+      return;
+    }
+    setErrorMsg(null);
+    setResetLoading(true);
+    const res = await sendResetPassword(email);
+    setResetLoading(false);
+    if (res.success) {
+      setResetSuccess(true);
+      showNotification(`Enlace enviado a ${email}. Revisa tu bandeja de entrada o spam.`);
+    } else {
+      setErrorMsg(formatAuthError(res.error));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,6 +120,10 @@ export const AuthModal = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const res = await loginWithGoogle();
+      if (res?.isNativeAlert) {
+        setErrorMsg(res.message);
+        return;
+      }
       if (res?.redirecting) {
         // Redirigiendo a Google de forma segura...
         return;
@@ -299,7 +323,26 @@ export const AuthModal = ({ isOpen, onClose }) => {
                     />
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
+                  {mode === 'login' && (
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={handlePasswordReset}
+                        disabled={resetLoading}
+                        className="text-[11px] text-red-400 hover:text-red-300 transition-colors font-medium hover:underline"
+                      >
+                        {resetLoading ? 'Enviando enlace...' : '¿Olvidaste o no tienes contraseña?'}
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {resetSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>¡Enlace enviado a tu correo! Revisa tu bandeja de entrada o spam para definir tu clave.</span>
+                  </div>
+                )}
 
                 <button
                   type="submit"

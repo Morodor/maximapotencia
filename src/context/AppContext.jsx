@@ -7,6 +7,7 @@ import {
   auth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -243,12 +244,35 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const sendResetPassword = async (targetEmail) => {
+    try {
+      if (!targetEmail || !targetEmail.includes('@')) {
+        return { success: false, error: 'Por favor ingresa un correo electrónico válido.' };
+      }
+      await sendPasswordResetEmail(auth, targetEmail.trim());
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.code || err.message };
+    }
+  };
+
   const loginWithGoogle = async () => {
     try {
+      // En la app nativa instalada (Capacitor Android), el redirect web a localhost es rechazado por Chrome
+      const isNative = typeof window !== 'undefined' && window?.Capacitor?.isNativePlatform?.();
+      if (isNative) {
+        return {
+          success: false,
+          isNativeAlert: true,
+          error: 'NATIVE_USE_EMAIL',
+          message: 'En la app instalada en Android, inicia sesión con tu Correo y Contraseña oficial. Si aún no tienes contraseña para tu cuenta de Google, pulsa "¿Olvidaste o no tienes contraseña?" para recibir el enlace en tu correo.'
+        };
+      }
+
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // En móviles o webviews, signInWithRedirect evita que el navegador se quede en blanco en /__/auth/handler
+      // En móviles web, signInWithRedirect evita que el navegador se quede en blanco en /__/auth/handler
       const isMobileDevice = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 768;
 
       if (isMobileDevice) {
@@ -1574,6 +1598,7 @@ export const AppProvider = ({ children }) => {
       loginWithEmail,
       registerWithEmail,
       loginWithGoogle,
+      sendResetPassword,
       logout,
       isGuestMode,
       setGuestMode,
