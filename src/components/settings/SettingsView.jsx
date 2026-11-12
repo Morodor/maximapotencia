@@ -25,7 +25,10 @@ import {
   Radio,
   SlidersHorizontal,
   Building2,
-  Copy
+  Copy,
+  User,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
@@ -56,7 +59,10 @@ export const SettingsView = () => {
     availableThemes,
     activeGymId,
     switchGym,
-    resetDefaultGym
+    resetDefaultGym,
+    currentUser,
+    setIsAuthModalOpen,
+    logout
   } = useApp();
 
   const [inputGymId, setInputGymId] = useState(activeGymId || '');
@@ -188,6 +194,91 @@ export const SettingsView = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
+      {/* Sección 0: Cuenta de Usuario & Firebase Auth */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <User className="w-5 h-5 text-red-500" />
+              <span>Cuenta & Sesión de Usuario</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Inicia sesión con tu correo electrónico para sincronizar y respaldar tu identidad de Coach / Admin en la nube de Firebase.
+            </p>
+          </div>
+
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all border border-slate-700 active:scale-95"
+              >
+                Ver Mi Perfil
+              </button>
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold transition-all active:scale-95"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-red-950/40 transition-all active:scale-95 shrink-0"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Iniciar Sesión / Registrarse</span>
+            </button>
+          )}
+        </div>
+
+        {currentUser ? (
+          <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-base shrink-0">
+                {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white">{currentUser.displayName || 'Usuario de Máxima Potencia'}</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    Sesión Activa
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">{currentUser.email}</p>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">UID: {currentUser.uid}</p>
+              </div>
+            </div>
+            <div className="text-left sm:text-right text-[11px] text-slate-400">
+              <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Método de Acceso</span>
+              <span className="font-semibold text-slate-300">
+                {currentUser.providerData?.[0]?.providerId === 'google.com' ? 'Google Account' : 'Email & Contraseña'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-700/60 border border-slate-600 flex items-center justify-center text-slate-400 shrink-0">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Modo Invitado / Sin Sesión Iniciada</p>
+                <p className="text-xs text-slate-400">Inicia sesión con tu correo para vincular tu identidad de coach y acceder como administrador.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="text-xs font-bold text-red-400 hover:text-red-300 underline"
+            >
+              ¿Tienes cuenta? Ingresa aquí
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Sección 1: Equipo de Entrenadores y Jerarquía (RBAC) */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">

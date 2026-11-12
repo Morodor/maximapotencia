@@ -4,6 +4,13 @@ import {
   getActiveGymId,
   setActiveGymId,
   DEFAULT_GYM_ID,
+  auth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -117,6 +124,55 @@ export const AppProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);
   const [appUpdateInfo, setAppUpdateInfo] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  // Estados de Autenticación Oficial (Firebase Auth)
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubAuth();
+  }, []);
+
+  const loginWithEmail = async (email, password) => {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      return { success: true, user: cred.user };
+    } catch (err) {
+      return { success: false, error: err.code || err.message };
+    }
+  };
+
+  const registerWithEmail = async (email, password, displayName) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      return { success: true, user: cred.user };
+    } catch (err) {
+      return { success: false, error: err.code || err.message };
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const cred = await signInWithPopup(auth, provider);
+      return { success: true, user: cred.user };
+    } catch (err) {
+      return { success: false, error: err.code || err.message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      return true;
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      return false;
+    }
+  };
 
   // Paleta de color y tema de la aplicación
   const [appTheme, setAppTheme] = useState(() => {
@@ -841,7 +897,14 @@ export const AppProvider = ({ children }) => {
       availableThemes: AVAILABLE_THEMES,
       activeGymId,
       switchGym,
-      resetDefaultGym
+      resetDefaultGym,
+      currentUser,
+      isAuthModalOpen,
+      setIsAuthModalOpen,
+      loginWithEmail,
+      registerWithEmail,
+      loginWithGoogle,
+      logout
     }}>
       {children}
     </AppContext.Provider>

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { navItems } from './Sidebar';
-import { ShieldCheck, Wifi, Activity, Crown, ChevronDown, Users, Rocket } from 'lucide-react';
+import { ShieldCheck, Wifi, Activity, Crown, ChevronDown, Users, Rocket, User, LogIn } from 'lucide-react';
 import { CoachSwitcherModal } from '../coaches/CoachSwitcherModal';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
+import { AuthModal } from '../auth/AuthModal';
 
 export const Header = () => {
   const { 
@@ -14,7 +15,10 @@ export const Header = () => {
     coaches,
     hasUpdateAvailable,
     appUpdateInfo,
-    setIsUpdateModalOpen 
+    setIsUpdateModalOpen,
+    currentUser,
+    isAuthModalOpen,
+    setIsAuthModalOpen
   } = useApp();
   const currentItem = navItems.find(i => i.id === currentPanel) || navItems[0];
 
@@ -95,8 +99,47 @@ export const Header = () => {
 
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors ml-1" />
           </button>
+
+          {/* Botón de Autenticación / Cuenta Firebase */}
+          {currentUser ? (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 px-3 py-2 rounded-2xl shadow-sm backdrop-blur transition-all active:scale-95 group text-left"
+              title="Cuenta de usuario conectada"
+            >
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shrink-0">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="hidden sm:block text-left text-xs pr-1">
+                <div className="flex items-center gap-1.5 leading-tight">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                  <span className="font-bold text-white group-hover:text-emerald-400 transition-colors truncate max-w-[110px]">
+                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Conectado'}
+                  </span>
+                </div>
+                <p className="text-slate-500 text-[10px] font-medium truncate max-w-[110px] mt-0.5">
+                  {currentUser.email}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold px-3.5 py-2.5 rounded-2xl shadow-md shadow-red-950/40 text-xs transition-all active:scale-95"
+              title="Iniciar sesión en Máxima Potencia"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Iniciar Sesión</span>
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Modal Autenticación Firebase */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
 
       {/* Modal Cambio Rápido de Coach */}
       <CoachSwitcherModal

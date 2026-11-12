@@ -1,0 +1,304 @@
+import React, { useState } from 'react';
+import { useApp } from '../../context/AppContext';
+import { 
+  X, 
+  LogIn, 
+  UserPlus, 
+  Mail, 
+  Lock, 
+  User, 
+  LogOut, 
+  CheckCircle2, 
+  AlertCircle, 
+  ShieldCheck, 
+  Crown,
+  Loader2,
+  Sparkles
+} from 'lucide-react';
+
+export const AuthModal = ({ isOpen, onClose }) => {
+  const { 
+    currentUser, 
+    loginWithEmail, 
+    registerWithEmail, 
+    loginWithGoogle, 
+    logout,
+    currentCoach,
+    isHeadCoach,
+    showNotification 
+  } = useApp();
+
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setLoading(true);
+
+    try {
+      if (mode === 'login') {
+        const res = await loginWithEmail(email, password);
+        if (res.success) {
+          showNotification(`¡Bienvenido de vuelta, ${res.user?.email || 'Entrenador'}!`);
+          onClose();
+        } else {
+          setErrorMsg(formatAuthError(res.error));
+        }
+      } else {
+        const res = await registerWithEmail(email, password, name);
+        if (res.success) {
+          showNotification('¡Cuenta creada e iniciada con éxito!');
+          onClose();
+        } else {
+          setErrorMsg(formatAuthError(res.error));
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await loginWithGoogle();
+      if (res.success) {
+        showNotification(`¡Sesión iniciada con Google: ${res.user?.email}!`);
+        onClose();
+      } else {
+        setErrorMsg(formatAuthError(res.error));
+      }
+    } catch (err) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    showNotification('Sesión cerrada correctamente.');
+    onClose();
+  };
+
+  const formatAuthError = (codeOrMsg) => {
+    const str = String(codeOrMsg || '');
+    if (str.includes('user-not-found') || str.includes('wrong-password') || str.includes('invalid-credential')) {
+      return 'Correo o contraseña incorrectos.';
+    }
+    if (str.includes('email-already-in-use')) {
+      return 'Ya existe una cuenta con este correo.';
+    }
+    if (str.includes('weak-password')) {
+      return 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    if (str.includes('invalid-email')) {
+      return 'El formato de correo no es válido.';
+    }
+    if (str.includes('operation-not-allowed')) {
+      return 'El proveedor Correo/Contraseña aún no está activado en tu Firebase Console (ve a Authentication > Sign-in method).';
+    }
+    return str || 'Ocurrió un error al autenticar.';
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+        {/* Cabecera */}
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center font-bold">
+              <ShieldCheck className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Autenticación & Cuenta</h3>
+              <p className="text-xs text-slate-400">Acceso oficial a Máxima Potencia</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800/60 hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Contenido */}
+        <div className="p-6 overflow-y-auto space-y-5">
+          {currentUser ? (
+            /* Usuario ya autenticado */
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center shadow-lg">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
+                    Sesión Verificada
+                  </span>
+                  <h4 className="text-sm font-bold text-white mt-0.5 truncate">{currentUser.email}</h4>
+                  <p className="text-[11px] text-slate-500 font-mono mt-1">UID: {currentUser.uid.slice(0, 12)}...</p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-center gap-2">
+                  <Crown className="w-4 h-4 text-amber-400" />
+                  <span>Perfil: <strong>{currentCoach?.name || 'Head Coach'}</strong></span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-bold transition-all active:scale-95"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          ) : (
+            /* Formulario de Login / Registro */
+            <div className="space-y-4">
+              {/* Selector de modo Login vs Registro */}
+              <div className="flex p-1 bg-slate-950 rounded-2xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setErrorMsg(null); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                    mode === 'login'
+                      ? 'bg-red-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('register'); setErrorMsg(null); }}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                    mode === 'register'
+                      ? 'bg-red-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Crear Cuenta
+                </button>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-3.5">
+                {mode === 'register' && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
+                      Tu Nombre Completo
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Ej. Bayron Quezada"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 pl-10 text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                      />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="entrenador@gmail.com"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 pl-10 text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                    />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 pl-10 text-white text-xs focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-red-950/40 transition-all active:scale-95 flex items-center justify-center gap-2 mt-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : mode === 'login' ? (
+                    <>
+                      <LogIn className="w-4 h-4" />
+                      <span>Iniciar Sesión Ahora</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Crear Cuenta Oficial</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Botón Google */}
+              <div className="relative pt-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-800" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase">
+                  <span className="bg-slate-900 px-2 text-slate-500 font-bold">O también</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center justify-center gap-2 transition-colors active:scale-95"
+              >
+                <span>Acceder con Google</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
