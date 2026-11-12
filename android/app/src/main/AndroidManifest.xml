@@ -22,6 +22,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link scheme para comunicación bidireccional en la Suite Máxima Potencia -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="maximapotencia" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -34,6 +42,16 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
+
+    <!-- Visibilidad de paquetes para Android 11+ (Suite Máxima Potencia & Speed Tracker) -->
+    <queries>
+        <package android:name="com.speedtracker.app" />
+        <package android:name="com.bayronquezada.speedtracker" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="speedtracker" />
+        </intent>
+    </queries>
 
     <!-- Permissions -->
 

@@ -20,10 +20,14 @@ import {
   ChevronUp,
   Sparkles,
   Palette,
-  Check
+  Check,
+  Zap,
+  Radio,
+  SlidersHorizontal
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
+import { getSuiteConfig, saveSuiteConfig, checkSpeedTrackerInstalled, launchSpeedTracker } from '../../utils/suiteLauncher';
 
 export const SettingsView = () => {
   const { 
@@ -62,6 +66,14 @@ export const SettingsView = () => {
   const [pubNotes, setPubNotes] = useState('');
   const [pubMandatory, setPubMandatory] = useState(false);
 
+  // Estados para Ecosistema Suite (Speed Tracker)
+  const [suiteConfig, setSuiteConfig] = useState(getSuiteConfig());
+  const [suitePackage, setSuitePackage] = useState('');
+  const [suiteScheme, setSuiteScheme] = useState('');
+  const [suiteWebUrl, setSuiteWebUrl] = useState('');
+  const [suiteSavedMsg, setSuiteSavedMsg] = useState(false);
+  const [suiteTestingMsg, setSuiteTestingMsg] = useState(null);
+
   useEffect(() => {
     if (currentCoach) {
       setCoachName(currentCoach.name || '');
@@ -78,6 +90,46 @@ export const SettingsView = () => {
       setPubMandatory(Boolean(appUpdateInfo.mandatory));
     }
   }, [appUpdateInfo]);
+
+  useEffect(() => {
+    const cfg = getSuiteConfig();
+    setSuiteConfig(cfg);
+    setSuitePackage(cfg.speedTracker?.packageName || 'com.speedtracker.app');
+    setSuiteScheme(cfg.speedTracker?.scheme || 'speedtracker://');
+    setSuiteWebUrl(cfg.speedTracker?.webUrl || 'https://speedtracker.web.app');
+  }, []);
+
+  const handleSaveSuiteConfig = (e) => {
+    e.preventDefault();
+    const updated = {
+      ...suiteConfig,
+      speedTracker: {
+        ...suiteConfig.speedTracker,
+        packageName: suitePackage.trim() || 'com.speedtracker.app',
+        scheme: suiteScheme.trim() || 'speedtracker://',
+        webUrl: suiteWebUrl.trim() || 'https://speedtracker.web.app'
+      }
+    };
+    saveSuiteConfig(updated);
+    setSuiteConfig(updated);
+    setSuiteSavedMsg(true);
+    setTimeout(() => setSuiteSavedMsg(false), 3000);
+  };
+
+  const handleTestSpeedTracker = async () => {
+    setSuiteTestingMsg({ loading: true, text: 'Probando enlace con Speed Tracker...' });
+    const res = await launchSpeedTracker({
+      athleteName: currentCoach?.name || 'Coach Test',
+      exercise: 'Sentadilla Test',
+      load: 100
+    });
+    if (res.success) {
+      setSuiteTestingMsg({ success: true, text: '¡Speed Tracker iniciado correctamente!' });
+    } else {
+      setSuiteTestingMsg({ error: true, text: res.message || 'No se pudo abrir automáticamente. Verifica el ID o instalación.' });
+    }
+    setTimeout(() => setSuiteTestingMsg(null), 4000);
+  };
 
   const handleSaveCurrentCoach = async () => {
     if (!currentCoach?.id) return;
@@ -483,7 +535,121 @@ export const SettingsView = () => {
         )}
       </div>
 
-      {/* Sección 4: Gestión de Datos y Backups */}
+      {/* Sección 4: Ecosistema Suite Máxima Potencia (Speed Tracker) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-5 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/40 text-red-500 flex items-center justify-center font-bold">
+              <Zap className="w-5 h-5 fill-red-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-bold text-white">Ecosistema Suite Máxima Potencia</h3>
+                <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 font-bold px-2.5 py-0.5 rounded-full">
+                  Speed Tracker
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Vinculación de aplicaciones hermanas para medición cinemática y análisis de levantamientos.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSaveSuiteConfig} className="space-y-4 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase">
+                ID de Paquete Android (Package Name)
+              </label>
+              <input
+                type="text"
+                value={suitePackage}
+                onChange={e => setSuitePackage(e.target.value)}
+                placeholder="com.speedtracker.app"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Nombre de paquete con el que compilaste tu app Speed Tracker.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase">
+                Esquema URI (Deep Link)
+              </label>
+              <input
+                type="text"
+                value={suiteScheme}
+                onChange={e => setSuiteScheme(e.target.value)}
+                placeholder="speedtracker://"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Permite enviar atleta, ejercicio y carga directamente.
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase">
+              URL Web / Descarga Alternativa
+            </label>
+            <input
+              type="url"
+              value={suiteWebUrl}
+              onChange={e => setSuiteWebUrl(e.target.value)}
+              placeholder="https://speedtracker.web.app"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          </div>
+
+          {suiteSavedMsg && (
+            <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Configuración de Suite guardada correctamente.</span>
+            </div>
+          )}
+
+          {suiteTestingMsg && (
+            <div className={`p-3 rounded-xl text-xs flex items-center gap-2 animate-in fade-in ${
+              suiteTestingMsg.success
+                ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300'
+                : suiteTestingMsg.error
+                ? 'bg-amber-950/40 border border-amber-500/40 text-amber-300'
+                : 'bg-slate-800 border border-slate-700 text-slate-300'
+            }`}>
+              {suiteTestingMsg.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-amber-400" />
+              )}
+              <span>{suiteTestingMsg.text}</span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleTestSpeedTracker}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-700 transition-colors"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Probar Enlace con Speed Tracker</span>
+            </button>
+
+            <button
+              type="submit"
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Guardar Configuración de Suite</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Sección 5: Gestión de Datos y Backups */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
           <Database className="w-5 h-5 text-blue-400" />

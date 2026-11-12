@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Zap, Save, Trash2, Award, Camera, Edit3, History, ArrowRight } from 'lucide-react';
+import { Zap, Save, Trash2, Award, Camera, Edit3, History, ArrowRight, Sparkles } from 'lucide-react';
 import { getVelocityZone } from '../../utils/vbtAnalysis';
 import { BarbellCameraTracker } from './BarbellCameraTracker';
+import { SpeedTrackerModal } from './SpeedTrackerModal';
 
 export const PowerView = () => {
   const { athletes, exercises, powerRecords, addPowerRecord, deletePowerRecord, setCurrentPanel } = useApp();
@@ -17,6 +18,9 @@ export const PowerView = () => {
   const [load, setLoad] = useState('');
   const [velocity, setVelocity] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Modal Suite Speed Tracker
+  const [isSpeedTrackerModalOpen, setIsSpeedTrackerModalOpen] = useState(false);
 
   const categoryExercises = (exercises[selectedCategory] || []).map(e => e.name);
 
@@ -105,6 +109,34 @@ export const PowerView = () => {
             <span>Historial ({powerRecords.length})</span>
           </button>
         </div>
+      </div>
+
+      {/* Banner de Integración Suite Speed Tracker */}
+      <div className="bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900 border border-red-500/30 p-4 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-red-600/20 border border-red-500/30 text-red-500 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-red-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-sm">Suite Máxima Potencia • Speed Tracker</span>
+              <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 font-bold px-2 py-0.5 rounded-full">
+                Ecosistema
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              ¿Deseas medir con tu app Speed Tracker? Vincula tu serie en 1 toque para análisis óptico empírico.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsSpeedTrackerModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-lg shadow-red-950/50 transition-all active:scale-95 shrink-0 whitespace-nowrap w-full sm:w-auto justify-center"
+        >
+          <Zap className="w-4 h-4 fill-white" />
+          <span>Abrir Speed Tracker</span>
+        </button>
       </div>
 
       {/* CONTENIDO 1: TRACKER POR CÁMARA */}
@@ -404,6 +436,15 @@ export const PowerView = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Integración con Speed Tracker */}
+      <SpeedTrackerModal
+        isOpen={isSpeedTrackerModalOpen}
+        onClose={() => setIsSpeedTrackerModalOpen(false)}
+        athleteName={getAthleteName(selectedAthlete) || 'Atleta'}
+        exercise={selectedExercise || 'Sentadilla (Squat)'}
+        load={load || '100'}
+      />
     </div>
   );
 };

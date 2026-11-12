@@ -387,6 +387,109 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ---------------- Operaciones de Biblioteca de Ejercicios (Admin/Coach) ----------------
+  const addExercise = async (category, exerciseData) => {
+    try {
+      const current = { ...exercises };
+      const cat = category.trim();
+      const catList = current[cat] ? [...current[cat]] : [];
+      if (catList.some(e => e.name.toLowerCase() === exerciseData.name.trim().toLowerCase())) {
+        showNotification('Ya existe un ejercicio con ese nombre en esta categoría.', true);
+        return false;
+      }
+      catList.push({
+        name: exerciseData.name.trim(),
+        description: exerciseData.description?.trim() || '',
+        requiresVelocity: Boolean(exerciseData.requiresVelocity)
+      });
+      current[cat] = catList;
+      await setDoc(exercisesDocRef, current);
+      showNotification(`Ejercicio "${exerciseData.name}" añadido a "${cat}".`);
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error al añadir ejercicio: ' + e.message, true);
+      return false;
+    }
+  };
+
+  const updateExercise = async (originalCategory, originalName, updatedData) => {
+    try {
+      const current = { ...exercises };
+      const targetCategory = (updatedData.category || originalCategory).trim();
+      
+      // Si cambia de categoría
+      if (targetCategory !== originalCategory) {
+        if (current[originalCategory]) {
+          current[originalCategory] = current[originalCategory].filter(e => e.name !== originalName);
+          if (current[originalCategory].length === 0) {
+            delete current[originalCategory];
+          }
+        }
+        const newCatList = current[targetCategory] ? [...current[targetCategory]] : [];
+        newCatList.push({
+          name: updatedData.name.trim(),
+          description: updatedData.description?.trim() || '',
+          requiresVelocity: Boolean(updatedData.requiresVelocity)
+        });
+        current[targetCategory] = newCatList;
+      } else {
+        // Misma categoría
+        if (current[originalCategory]) {
+          current[originalCategory] = current[originalCategory].map(e => {
+            if (e.name === originalName) {
+              return {
+                name: updatedData.name.trim(),
+                description: updatedData.description?.trim() || '',
+                requiresVelocity: Boolean(updatedData.requiresVelocity)
+              };
+            }
+            return e;
+          });
+        }
+      }
+
+      await setDoc(exercisesDocRef, current);
+      showNotification(`Ejercicio "${updatedData.name}" actualizado.`);
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error al actualizar ejercicio: ' + e.message, true);
+      return false;
+    }
+  };
+
+  const deleteExercise = async (category, exerciseName) => {
+    try {
+      const current = { ...exercises };
+      if (current[category]) {
+        current[category] = current[category].filter(e => e.name !== exerciseName);
+        if (current[category].length === 0) {
+          delete current[category];
+        }
+      }
+      await setDoc(exercisesDocRef, current);
+      showNotification(`Ejercicio "${exerciseName}" eliminado.`);
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error al eliminar ejercicio: ' + e.message, true);
+      return false;
+    }
+  };
+
+  const resetDefaultExercises = async () => {
+    try {
+      await setDoc(exercisesDocRef, DEFAULT_EXERCISES_DATA);
+      showNotification('Biblioteca de ejercicios restablecida.');
+      return true;
+    } catch (e) {
+      console.error(e);
+      showNotification('Error al restablecer ejercicios: ' + e.message, true);
+      return false;
+    }
+  };
+
   // ---------------- Operaciones de Grupos de Trabajo ----------------
   const addGroup = async (data) => {
     try {
@@ -690,6 +793,10 @@ export const AppProvider = ({ children }) => {
       addSession,
       updateSession,
       deleteSession,
+      addExercise,
+      updateExercise,
+      deleteExercise,
+      resetDefaultExercises,
       currentAppVersion: CURRENT_APP_VERSION,
       appUpdateInfo,
       hasUpdateAvailable,

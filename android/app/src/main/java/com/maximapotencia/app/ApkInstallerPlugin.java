@@ -194,4 +194,87 @@ public class ApkInstallerPlugin extends Plugin {
         err.put("error", message);
         notifyListeners("updateError", err);
     }
+
+    @PluginMethod
+    public void isAppInstalled(PluginCall call) {
+        String packageName = call.getString("packageName");
+        if (packageName == null || packageName.trim().isEmpty()) {
+            call.reject("packageName requerido");
+            return;
+        }
+
+        try {
+            getContext().getPackageManager().getPackageInfo(packageName, 0);
+            JSObject ret = new JSObject();
+            ret.put("installed", true);
+            ret.put("packageName", packageName);
+            call.resolve(ret);
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("installed", false);
+            ret.put("packageName", packageName);
+            call.resolve(ret);
+        }
+    }
+
+    @PluginMethod
+    public void launchApp(PluginCall call) {
+        String packageName = call.getString("packageName");
+        String scheme = call.getString("scheme");
+        JSObject extras = call.getObject("extras");
+
+        Context context = getContext();
+        Activity activity = getActivity();
+
+        try {
+            Intent intent = null;
+
+            // 1. Si viene scheme/URI explícito (ej: speedtracker://vbt?...), intentar por ACTION_VIEW
+            if (scheme != null && !scheme.trim().isEmpty()) {
+                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(scheme));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+
+            // 2. Si no o si se especificó packageName, buscar Launch Intent de la app
+            if (intent == null || (packageName != null && !packageName.trim().isEmpty())) {
+                Intent launchIntent = null;
+                if (packageName != null && !packageName.trim().isEmpty()) {
+                    launchIntent = context.getPackageManager().getLaunchIntentForPackage(packageName);
+                }
+                if (launchIntent != null) {
+                    intent = launchIntent;
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                }
+            }
+
+            if (intent != null) {
+                // Adjuntar extras opcionales si vienen
+                if (extras != null) {
+                    for (java.util.Iterator<String> it = extras.keys(); it.hasNext(); ) {
+                        String key = it.next();
+                        intent.putExtra(key, extras.getString(key));
+                    }
+                }
+
+                activity.startActivity(intent);
+
+                JSObject ret = new JSObject();
+                ret.put("launched", true);
+                ret.put("packageName", packageName);
+                call.resolve(ret);
+            } else {
+                JSObject ret = new JSObject();
+                ret.put("launched", false);
+                ret.put("installed", false);
+                ret.put("error", "APP_NOT_INSTALLED");
+                call.resolve(ret);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error al lanzar app externa", e);
+            JSObject ret = new JSObject();
+            ret.put("launched", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
+    }
 }

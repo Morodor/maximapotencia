@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { getVelocityZone } from '../../utils/vbtAnalysis';
 import { playBeep, hapticSuccess, hapticAlert } from '../../utils/feedback';
+import { launchSpeedTracker } from '../../utils/suiteLauncher';
 
 export const BarbellCameraTracker = ({ onRecordSaved }) => {
   const { athletes, groups, getAthleteGroups, exercises, addPowerRecord } = useApp();
@@ -739,6 +740,29 @@ export const BarbellCameraTracker = ({ onRecordSaved }) => {
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
+        </div>
+
+        {/* Acceso Rápido Suite Speed Tracker */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+          <span className="text-[11px] text-slate-400">
+            ¿Quieres medir con análisis de alta precisión empírica?
+          </span>
+          <button
+            type="button"
+            onClick={async () => {
+              const aName = athletes.find(a => a.id === selectedAthlete)?.name || 'Atleta';
+              await launchSpeedTracker({
+                athleteName: aName,
+                exercise: selectedExercise,
+                load: parseFloat(load) || 0
+              });
+            }}
+            className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 transition-all hover:bg-amber-500/20 active:scale-95"
+            title="Lanzar Speed Tracker con este atleta y carga"
+          >
+            <Zap className="w-3.5 h-3.5 fill-amber-400" />
+            <span>Medir esta serie con Speed Tracker 🚀</span>
+          </button>
         </div>
       </div>
 

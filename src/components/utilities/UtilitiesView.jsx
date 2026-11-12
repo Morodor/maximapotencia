@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Percent, Disc3, Timer, Target, Play, Pause, RotateCcw } from 'lucide-react';
 import { PlateVisualizer } from '../common/PlateVisualizer';
+import { PlateInventoryModal, DEFAULT_PLATE_INVENTORIES } from './PlateInventoryModal';
 
 export const UtilitiesView = () => {
   const [activeTab, setActiveTab] = useState('calculators');
@@ -12,6 +13,26 @@ export const UtilitiesView = () => {
   const [barWeight, setBarWeight] = useState(20);
   const [targetWeight, setTargetWeight] = useState('100');
   const [discResult, setDiscResult] = useState([]);
+
+  // Inventario de discos del usuario (guardado en LocalStorage)
+  const [userInventory, setUserInventory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mp_plate_inventory');
+      return saved ? JSON.parse(saved) : DEFAULT_PLATE_INVENTORIES.unlimited;
+    } catch {
+      return DEFAULT_PLATE_INVENTORIES.unlimited;
+    }
+  });
+  const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+  const handleSaveInventory = (inv) => {
+    setUserInventory(inv);
+    try {
+      localStorage.setItem('mp_plate_inventory', JSON.stringify(inv));
+    } catch (e) {
+      console.error('Error al guardar inventario de discos:', e);
+    }
+  };
 
   // Estado Cronómetro
   const [timeLeft, setTimeLeft] = useState(120);
@@ -156,7 +177,12 @@ export const UtilitiesView = () => {
               </div>
 
               <div className="mt-4">
-                <PlateVisualizer targetWeight={parseFloat(targetWeight) || 20} barWeight={barWeight} />
+                <PlateVisualizer 
+                  targetWeight={parseFloat(targetWeight) || 20} 
+                  barWeight={barWeight} 
+                  userInventory={userInventory}
+                  onOpenInventory={() => setIsInventoryModalOpen(true)}
+                />
               </div>
             </div>
           </div>
@@ -283,6 +309,14 @@ export const UtilitiesView = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Inventario de Discos */}
+      <PlateInventoryModal
+        isOpen={isInventoryModalOpen}
+        onClose={() => setIsInventoryModalOpen(false)}
+        currentInventory={userInventory}
+        onSaveInventory={handleSaveInventory}
+      />
     </div>
   );
 };
