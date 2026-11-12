@@ -1,9 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Save, User, Layers } from 'lucide-react';
+import { X, Save, User, Layers, Camera, Upload, Trash2, Image } from 'lucide-react';
+
+const compressImageFile = (file, maxWidth = 360, quality = 0.75) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.src = e.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxWidth) {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
 
 export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
   const { groups, addAthlete, updateAthlete } = useApp();
+  const fileInputRef = useRef(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -178,16 +215,91 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-                URL de Foto (opcional)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300 uppercase">
+                  Foto del Atleta
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="text-[10px] text-slate-400 hover:text-white underline"
+                >
+                  {showUrlInput ? 'Cámara / Galería' : 'Pegar URL'}
+                </button>
+              </div>
+
+              {/* Input de archivo oculto para activar Cámara o Galería */}
               <input
-                type="url"
-                value={formData.photoUrl}
-                onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
-                placeholder="https://..."
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setIsProcessingPhoto(true);
+                  try {
+                    const dataUrl = await compressImageFile(file);
+                    setFormData(prev => ({ ...prev, photoUrl: dataUrl }));
+                  } catch (err) {
+                    console.error('Error al procesar foto:', err);
+                  } finally {
+                    setIsProcessingPhoto(false);
+                  }
+                }}
               />
+
+              {showUrlInput ? (
+                <input
+                  type="url"
+                  value={formData.photoUrl}
+                  onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                />
+              ) : (
+                <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 rounded-xl p-2.5">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 shrink-0 border border-slate-600 flex items-center justify-center">
+                    {formData.photoUrl ? (
+                      <img src={formData.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-slate-400" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-white font-semibold truncate">
+                      {formData.photoUrl ? 'Foto seleccionada' : 'Sin foto cargada'}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {isProcessingPhoto ? 'Optimizando imagen...' : 'Cámara o Galería del teléfono'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isProcessingPhoto}
+                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 shadow transition-colors active:scale-95"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{formData.photoUrl ? 'Cambiar' : 'Subir'}</span>
+                    </button>
+
+                    {formData.photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, photoUrl: '' }))}
+                        className="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600/30 text-slate-400 hover:text-red-400 transition-colors"
+                        title="Quitar foto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

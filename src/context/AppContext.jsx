@@ -1,14 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  athletesRef, 
-  groupsRef,
-  coachesRef,
-  rmRecordsRef, 
-  powerRecordsRef, 
-  sessionsRef, 
-  exercisesDocRef, 
-  profileDocRef, 
-  appUpdateDocRef,
+  getGymRefs,
+  getActiveGymId,
+  setActiveGymId,
+  DEFAULT_GYM_ID,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -17,7 +12,10 @@ import {
   doc,
   db,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  query,
+  orderBy,
+  limit
 } from '../config/firebase';
 import { DEFAULT_EXERCISES_DATA } from '../data/defaultExercises';
 import { 
@@ -144,11 +142,32 @@ export const AppProvider = ({ children }) => {
     }, 3500);
   };
 
-  // Cargar datos en tiempo real desde Firestore
-  useEffect(() => {
-    console.log("Conectando listeners en tiempo real a Firebase...");
+  // Gimnasio Activo (Multi-tenancy dinámico)
+  const [activeGymId, setActiveGymIdState] = useState(() => getActiveGymId());
+  const currentGymRefs = getGymRefs(activeGymId);
 
-    const unsubAthletes = onSnapshot(athletesRef, (snapshot) => {
+  const switchGym = (newGymId) => {
+    if (!newGymId || !newGymId.trim()) return;
+    const clean = newGymId.trim();
+    setActiveGymId(clean);
+    setActiveGymIdState(clean);
+    showNotification(`Conectado al gimnasio: ${clean}`);
+  };
+
+  const resetDefaultGym = () => {
+    setActiveGymId(DEFAULT_GYM_ID);
+    setActiveGymIdState(DEFAULT_GYM_ID);
+    showNotification('Gimnasio restablecido al principal.');
+  };
+
+  // Cargar datos en tiempo real desde Firestore (con caché offline en disco)
+  useEffect(() => {
+    console.log(`Conectando listeners en tiempo real a Firebase para Gym ID: ${activeGymId}...`);
+    setLoading(true);
+
+    const refs = getGymRefs(activeGymId);
+
+    const unsubAthletes = onSnapshot(refs.athletesRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setAthletes(list);
       setLoading(false);
@@ -157,18 +176,18 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     });
 
-    const unsubGroups = onSnapshot(groupsRef, (snapshot) => {
+    const unsubGroups = onSnapshot(refs.groupsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setGroups(list);
     }, (err) => console.warn("Aviso al cargar grupos:", err));
 
-    const unsubCoaches = onSnapshot(coachesRef, (snapshot) => {
+    const unsubCoaches = onSnapshot(refs.coachesRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setCoaches(list);
 
-      // Auto-inicializar Head Coach si la colección está vacía
-      if (snapshot.empty) {
-        addDoc(coachesRef, {
+      // Auto-inicializar Head Coach si la colección está vacía en el gimnasio principal
+      if (snapshot.empty && activeGymId === DEFAULT_GYM_ID) {
+        addDoc(refs.coachesRef, {
           name: 'Bayron Quezada',
           role: 'head_coach',
           title: 'Head Coach & Administrador General',
@@ -182,42 +201,42 @@ export const AppProvider = ({ children }) => {
       }
     }, (err) => console.warn("Aviso al cargar entrenadores:", err));
 
-    const unsubRM = onSnapshot(rmRecordsRef, (snapshot) => {
+    const unsubRM = onSnapshot(refs.rmRecordsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setRmRecords(list);
     }, (err) => console.warn("Aviso al cargar 1RM:", err));
 
-    const unsubPower = onSnapshot(powerRecordsRef, (snapshot) => {
+    const unsubPower = onSnapshot(refs.powerRecordsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setPowerRecords(list);
     }, (err) => console.warn("Aviso al cargar potencia:", err));
 
-    const unsubSessions = onSnapshot(sessionsRef, (snapshot) => {
+    const unsubSessions = onSnapshot(refs.sessionsRef, (snapshot) => {
       const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setSessions(list);
     }, (err) => console.warn("Aviso al cargar sesiones:", err));
 
-    const unsubExercises = onSnapshot(exercisesDocRef, (docSnap) => {
+    const unsubExercises = onSnapshot(refs.exercisesDocRef, (docSnap) => {
       if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
         setExercises(docSnap.data());
       }
     }, (err) => console.warn("Aviso al cargar ejercicios:", err));
 
-    const unsubProfile = onSnapshot(profileDocRef, (docSnap) => {
+    const unsubProfile = onSnapshot(refs.profileDocRef, (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       }
     }, (err) => console.warn("Aviso al cargar perfil:", err));
 
-    const unsubUpdate = onSnapshot(appUpdateDocRef, (docSnap) => {
+    const unsubUpdate = onSnapshot(refs.appUpdateDocRef, (docSnap) => {
       if (docSnap.exists()) {
         setAppUpdateInfo(docSnap.data());
       } else {
         // Inicializar documento de actualización si no existe
-        setDoc(appUpdateDocRef, {
+        setDoc(refs.appUpdateDocRef, {
           latestVersion: CURRENT_APP_VERSION,
-          releaseDate: '2026-11-11',
-          releaseNotes: '• Corrección de márgenes y botones fuera de pantalla en móvil.\n• Selector de ejercicios optimizado para pantallas táctiles.\n• Nuevo sistema de notificaciones de actualización automática.',
+          releaseDate: '2026-11-12',
+          releaseNotes: '• Soporte multi-gimnasio y caché offline persistente.\n• Subida de fotos de atletas desde cámara y galería.\n• Compartir resumen de sesión directamente por WhatsApp.',
           downloadUrl: '',
           mandatory: false,
           updatedAt: serverTimestamp()
@@ -236,7 +255,7 @@ export const AppProvider = ({ children }) => {
       unsubProfile();
       unsubUpdate();
     };
-  }, []);
+  }, [activeGymId]);
 
   // Operaciones de Atletas
   const addAthlete = async (data) => {
@@ -807,7 +826,10 @@ export const AppProvider = ({ children }) => {
       downloadAndInstallUpdate,
       appTheme,
       changeTheme,
-      availableThemes: AVAILABLE_THEMES
+      availableThemes: AVAILABLE_THEMES,
+      activeGymId,
+      switchGym,
+      resetDefaultGym
     }}>
       {children}
     </AppContext.Provider>
