@@ -161,6 +161,9 @@ export const AuthModal = ({ isOpen, onClose }) => {
     if (str.includes('operation-not-allowed')) {
       return 'El proveedor Correo/Contraseña aún no está activado en tu Firebase Console (ve a Authentication > Sign-in method).';
     }
+    if (str.includes('unauthorized-domain')) {
+      return 'Dominio no autorizado para autenticación en Firebase Auth. Por favor ingresa desde https://maximapotencia.web.app';
+    }
     return str || 'Ocurrió un error al autenticar.';
   };
 
