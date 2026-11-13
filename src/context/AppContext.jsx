@@ -584,16 +584,56 @@ export const AppProvider = ({ children }) => {
       setSessions(list);
     }, (err) => console.warn("Aviso al cargar sesiones:", err));
 
-    const unsubExercises = onSnapshot(refs.exercisesDocRef, (docSnap) => {
+    const unsubExercises = onSnapshot(refs.exercisesDocRef, async (docSnap) => {
+      const mergeWithDefaultExercises = (existingData, defaults) => {
+        const merged = { ...existingData };
+        let hasNew = false;
+        for (const [cat, defaultList] of Object.entries(defaults)) {
+          if (!merged[cat]) {
+            merged[cat] = [...defaultList];
+            hasNew = true;
+          } else {
+            const existingNames = new Set((merged[cat] || []).map(e => e.name?.toLowerCase().trim()));
+            const missing = defaultList.filter(e => !existingNames.has(e.name?.toLowerCase().trim()));
+            if (missing.length > 0) {
+              merged[cat] = [...merged[cat], ...missing];
+              hasNew = true;
+            }
+          }
+        }
+        return { merged, hasNew };
+      };
+
       if (docSnap.exists() && Object.keys(docSnap.data()).length > 0) {
+        const firestoreData = docSnap.data();
         if (!currentUser && isGuestMode) {
           const local = getGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, null);
           if (local !== null) {
-            setExercises(local);
+            const { merged, hasNew } = mergeWithDefaultExercises(local, DEFAULT_EXERCISES_DATA);
+            if (hasNew) setGuestStorage(GUEST_STORAGE_KEYS.EXERCISES, merged);
+            setExercises(merged);
             return;
           }
         }
-        setExercises(docSnap.data());
+
+        const { merged, hasNew } = mergeWithDefaultExercises(firestoreData, DEFAULT_EXERCISES_DATA);
+        setExercises(merged);
+
+        // Si faltaban ejercicios oficiales (nuevos DLP / Complexes), sincronizar a Firestore
+        if (hasNew) {
+          try {
+            await setDoc(refs.exercisesDocRef, merged, { merge: true });
+          } catch (e) {
+            console.warn("Aviso al sincronizar nuevos ejercicios oficiales:", e);
+          }
+        }
+      } else {
+        try {
+          await setDoc(refs.exercisesDocRef, DEFAULT_EXERCISES_DATA);
+        } catch (e) {
+          console.warn("Aviso inicializando documento de ejercicios:", e);
+        }
+        setExercises(DEFAULT_EXERCISES_DATA);
       }
     }, (err) => console.warn("Aviso al cargar ejercicios:", err));
 

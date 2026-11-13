@@ -51,15 +51,50 @@ export const EXERCISE_MVT = {
   'Dominadas (Pull-ups)': 0.20,
   'Dominadas': 0.20,
 
-  // Derivados Halterofilia
+  // Derivados Halterofilia & DLP
   'Arranque (Snatch)': 0.85,
+  'Arranque Colgante (Hang Snatch)': 0.80,
   'Arranque de Potencia (Power Snatch)': 0.80,
+  'Arranque de Potencia Colgante (Hang Power Snatch)': 0.80,
+  'Arranque de Fuerza (Muscle Snatch)': 0.85,
   'Cargada (Clean)': 0.80,
+  'Cargada Colgante (Hang Clean)': 0.75,
   'Cargada de Potencia (Power Clean)': 0.75,
+  'Cargada de Potencia Colgante (Hang Power Clean)': 0.75,
+  'Cargada de Fuerza (Muscle Clean)': 0.75,
+  'Envión (Jerk)': 0.75,
+  'Push Jerk': 0.70,
+  'Split Jerk': 0.75,
+  'Power Jerk': 0.75,
+  'Push Press': 0.40,
+  'Push Press tras Nuca (Behind the Neck Push Press)': 0.40,
+  'Envión tras Nuca (Behind the Neck Jerk)': 0.75,
+  'Sentadilla de Arranque (Overhead Squat)': 0.35,
+  'Balance de Arranque (Snatch Balance)': 0.80,
   'Tirones de Arranque (Snatch Pulls)': 0.65,
   'Tirón de Arranque (Snatch Pull)': 0.65,
+  'Tirón Alto de Arranque (Snatch High Pull)': 0.70,
   'Tirones de Cargada (Clean Pulls)': 0.60,
   'Tirón de Envión (Clean Pull)': 0.60,
+  'Tirón Alto de Cargada (Clean High Pull)': 0.65,
+
+  // Complexes / Combinados (DLP)
+  'Cargada y Envión (Clean & Jerk)': 0.80,
+  'Clean & Jerk': 0.80,
+  'Complex: Cargada + Sentadilla Frontal + Envión (Clean + Front Squat + Jerk)': 0.75,
+  'Complex: Cargada de Potencia + Push Press (Power Clean + Push Press)': 0.65,
+  'Complex: Cargada de Potencia + Push Jerk (Power Clean + Push Jerk)': 0.75,
+  'Complex: Cargada de Potencia + Sentadilla Frontal (Power Clean + Front Squat)': 0.60,
+  'Complex: Tirón de Cargada + Cargada de Potencia (Clean Pull + Power Clean)': 0.70,
+  'Complex: Tirón de Cargada + Cargada Colgante (Clean Pull + Hang Clean)': 0.70,
+  'Complex: Cargada Colgante + Cargada (Hang Clean + Clean)': 0.75,
+  'Complex: Arranque de Potencia + Sentadilla de Arranque (Power Snatch + Overhead Squat)': 0.70,
+  'Complex: Tirón de Arranque + Arranque de Potencia (Snatch Pull + Power Snatch)': 0.75,
+  'Complex: Tirón de Arranque + Arranque Colgante (Snatch Pull + Hang Snatch)': 0.75,
+  'Complex: Arranque Colgante + Arranque (Hang Snatch + Snatch)': 0.80,
+  'Complex: Push Press + Split Jerk': 0.60,
+  'Complex: Sentadilla Frontal + Push Press (Thruster / Front Squat + Push Press)': 0.40,
+  'Complex: Peso Muerto Rumano + Remo con Barra (RDL + Barbell Row)': 0.25,
 
   // Default de seguridad si no está en la lista
   'DEFAULT': 0.25
@@ -68,7 +103,9 @@ export const EXERCISE_MVT = {
 export const getMVTForExercise = (exerciseName = '') => {
   if (!exerciseName) return EXERCISE_MVT['DEFAULT'];
   const match = Object.keys(EXERCISE_MVT).find(k => isSameExercise(k, exerciseName));
-  return match ? EXERCISE_MVT[match] : EXERCISE_MVT['DEFAULT'];
+  if (match) return EXERCISE_MVT[match];
+  if (exerciseName.toLowerCase().startsWith('complex:')) return 0.70;
+  return EXERCISE_MVT['DEFAULT'];
 };
 
 /**

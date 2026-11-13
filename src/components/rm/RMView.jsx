@@ -13,10 +13,14 @@ export const RMView = () => {
   const [finalWeight, setFinalWeight] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Lista de ejercicios de fuerza y halterofilia
+  // Lista de ejercicios de fuerza, halterofilia (DLP) y complejos (Complexes)
   const availableExercises = [
     ...(exercises['Ley de Hill (Fuerza)'] || []).map(e => e.name),
-    ...(exercises['DLP (Derivados del Levantamiento Olímpico)'] || []).map(e => e.name)
+    ...(exercises['DLP (Derivados del Levantamiento Olímpico)'] || []).map(e => e.name),
+    ...(exercises['Complexes / Combinados (DLP)'] || []).map(e => e.name),
+    ...Object.entries(exercises || {})
+      .filter(([cat]) => !['Ley de Hill (Fuerza)', 'DLP (Derivados del Levantamiento Olímpico)', 'Complexes / Combinados (DLP)', 'Balístico Explosivo'].includes(cat))
+      .flatMap(([, list]) => (list || []).map(e => e.name))
   ].sort();
 
   // Calcular con Brzycki
