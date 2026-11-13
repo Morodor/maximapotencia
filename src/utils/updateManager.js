@@ -1,8 +1,8 @@
 import { Browser } from '@capacitor/browser';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = "2.2.0";
-export const APP_BUILD_DATE = "2026-11-12";
+export const CURRENT_APP_VERSION = "2.3.0";
+export const APP_BUILD_DATE = "2026-11-13";
 export const DEFAULT_APK_URL = "https://github.com/Morodor/maximapotencia/releases/latest/download/Maxima_Potencia.apk";
 
 export const ApkInstaller = registerPlugin('ApkInstaller');

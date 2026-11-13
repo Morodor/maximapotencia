@@ -47,7 +47,7 @@ export const Sidebar = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white tracking-tight">Máxima Potencia</h1>
-              <span className="text-xs font-mono text-red-400 font-semibold">v{currentAppVersion || '2.1.0'} Pro</span>
+              <span className="text-xs font-mono text-red-400 font-semibold">v{currentAppVersion || '2.3.0'} Pro</span>
             </div>
           </div>
         </div>

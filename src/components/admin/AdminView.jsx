@@ -279,7 +279,7 @@ export const AdminView = () => {
                   Super Admin Console
                 </span>
                 <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700/60">
-                  v{currentAppVersion || '2.2.0'} Pro
+                  v{currentAppVersion || '2.3.0'} Pro
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -545,7 +545,7 @@ export const AdminView = () => {
                     required
                     value={releaseVersion}
                     onChange={(e) => setReleaseVersion(e.target.value)}
-                    placeholder="2.2.0"
+                    placeholder="2.3.0"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">

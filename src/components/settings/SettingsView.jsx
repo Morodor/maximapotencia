@@ -92,6 +92,7 @@ export const SettingsView = () => {
 
   // Estados para Ecosistema Suite (Speed Tracker)
   const [suiteConfig, setSuiteConfig] = useState(getSuiteConfig());
+  const [themeCategoryFilter, setThemeCategoryFilter] = useState('all'); // 'all' | 'light' | 'tinted' | 'dark'
   const [suitePackage, setSuitePackage] = useState('');
   const [suiteScheme, setSuiteScheme] = useState('');
   const [suiteWebUrl, setSuiteWebUrl] = useState('');
@@ -517,60 +518,151 @@ export const SettingsView = () => {
           </span>
         </div>
 
-        {/* Selector Desplegable de Temas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-              Lista Desplegable de Temas
-            </label>
-            <div className="relative">
-              <select
-                value={appTheme || 'red'}
-                onChange={e => changeTheme(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none pr-10 cursor-pointer shadow-md"
-              >
-                {availableThemes?.map(t => (
-                  <option key={t.id} value={t.id} className="bg-slate-900 text-white py-2">
-                    {t.name} — {t.environmentName || t.subtitle}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <ChevronDown className="w-5 h-5" />
+        {/* Filtros de Categoría de Tema y Selector */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                Lista Desplegable de Temas (15 Estilos)
+              </label>
+              <div className="relative">
+                <select
+                  value={appTheme || 'red'}
+                  onChange={e => changeTheme(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none pr-10 cursor-pointer shadow-md"
+                >
+                  <optgroup label="☀️ Modos Claros & Luminosos (Fondo No Oscuro)">
+                    {availableThemes?.filter(t => t.category === 'light').map(t => (
+                      <option key={t.id} value={t.id} className="bg-slate-900 text-white py-2">
+                        ☀️ {t.name} — {t.environmentName}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="⚡ Ambientes Tintados & Vívidos">
+                    {availableThemes?.filter(t => t.category === 'tinted').map(t => (
+                      <option key={t.id} value={t.id} className="bg-slate-900 text-white py-2">
+                        ⚡ {t.name} — {t.environmentName}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🌙 Clásicos Nocturnos Élite (Oscuros)">
+                    {availableThemes?.filter(t => t.category === 'dark').map(t => (
+                      <option key={t.id} value={t.id} className="bg-slate-900 text-white py-2">
+                        🌙 {t.name} — {t.environmentName}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronDown className="w-5 h-5" />
+                </div>
+              </div>
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Selecciona entre fondos claros para luz diurna, tintados atmosféricos o carbón oscuro.
+              </span>
+            </div>
+
+            {/* Pestañas de Filtro Rápido */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                Filtrar Muestras por Ambiente
+              </label>
+              <div className="flex flex-wrap gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setThemeCategoryFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    themeCategoryFilter === 'all'
+                      ? 'bg-red-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Todos ({availableThemes?.length || 15})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThemeCategoryFilter('light')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    themeCategoryFilter === 'light'
+                      ? 'bg-amber-500 text-slate-950 shadow-xs'
+                      : 'text-amber-400/80 hover:text-amber-300'
+                  }`}
+                >
+                  <span>☀️ Claros (3)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThemeCategoryFilter('tinted')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    themeCategoryFilter === 'tinted'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-emerald-400/80 hover:text-emerald-300'
+                  }`}
+                >
+                  <span>⚡ Tintados (6)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThemeCategoryFilter('dark')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    themeCategoryFilter === 'dark'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-indigo-400/80 hover:text-indigo-300'
+                  }`}
+                >
+                  <span>🌙 Oscuros (6)</span>
+                </button>
               </div>
             </div>
-            <span className="text-[11px] text-slate-500 mt-1 block">
-              Cambia inmediatamente el acento y el fondo de toda la aplicación.
-            </span>
           </div>
 
-          {/* Pastillas rápidas */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-              Acceso Rápido por Muestra
-            </label>
+          {/* Pastillas Rápidas con Muestra de Color */}
+          <div className="space-y-1.5 pt-1">
+            <span className="text-[11px] font-bold uppercase text-slate-400 block tracking-wider">
+              Muestras Táctiles (Toca para cambiar al instante)
+            </span>
             <div className="flex flex-wrap gap-2">
-              {availableThemes?.map(t => {
-                const isSelected = (appTheme || 'red') === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => changeTheme(t.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-2 transition-all ${
-                      isSelected 
-                        ? 'border-white text-white ring-2 ring-red-500 shadow-md scale-105'
-                        : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'
-                    }`}
-                    style={{
-                      backgroundColor: isSelected ? t.surfaceHex : undefined
-                    }}
-                  >
-                    <span className="w-3 h-3 rounded-full border border-black/40" style={{ backgroundColor: t.colorHex }} />
-                    <span>{t.name.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
+              {availableThemes
+                ?.filter(t => themeCategoryFilter === 'all' || t.category === themeCategoryFilter)
+                ?.map(t => {
+                  const isSelected = (appTheme || 'red') === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => changeTheme(t.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-2.5 transition-all shadow-sm ${
+                        isSelected 
+                          ? 'border-white text-white ring-2 ring-red-500 shadow-lg scale-105'
+                          : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:bg-slate-750'
+                      }`}
+                      style={{
+                        backgroundColor: isSelected ? t.surfaceHex : undefined,
+                        color: isSelected && t.isLight ? '#0f172a' : undefined
+                      }}
+                    >
+                      {/* Swatch dual: Fondo + Acento */}
+                      <span className="flex items-center -space-x-1 shrink-0">
+                        <span 
+                          className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-xs z-10" 
+                          style={{ backgroundColor: t.colorHex }} 
+                          title="Acento" 
+                        />
+                        <span 
+                          className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-xs" 
+                          style={{ backgroundColor: t.bgHex }} 
+                          title="Fondo" 
+                        />
+                      </span>
+                      <span>{t.name}</span>
+                      {t.isLight && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase font-black">
+                          Claro
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -585,7 +677,7 @@ export const SettingsView = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div 
-                    className="w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center border-2 border-slate-800 shrink-0"
+                    className="w-11 h-11 rounded-2xl shadow-lg flex items-center justify-center border-2 border-slate-800 shrink-0"
                     style={{ backgroundColor: activeThemeObj.colorHex }}
                   >
                     <Sparkles className="w-5 h-5 text-white" />
@@ -597,8 +689,17 @@ export const SettingsView = () => {
                         className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-xs"
                         style={{ backgroundColor: activeThemeObj.colorHex }}
                       >
-                        Vista Previa Activa
+                        Activo
                       </span>
+                      {activeThemeObj.isLight ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          ☀️ Modo Fondo Claro
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                          🌙 Modo Fondo Oscuro
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400">{activeThemeObj.environmentName || activeThemeObj.subtitle}</p>
                   </div>
@@ -608,9 +709,14 @@ export const SettingsView = () => {
                   <div className="text-left sm:text-right">
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Atmósfera de Color</span>
                     <div className="flex items-center gap-1.5 sm:justify-end mt-0.5">
-                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.bgHex }} title="Fondo general" />
-                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.surfaceHex }} title="Tarjetas" />
-                      <span className="w-4 h-4 rounded-full border border-slate-600 shadow" style={{ backgroundColor: activeThemeObj.colorHex }} title="Acento" />
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">
+                        <span className="w-3 h-3 rounded-full border border-slate-600" style={{ backgroundColor: activeThemeObj.bgHex }} />
+                        <span>Fondo: {activeThemeObj.bgHex}</span>
+                      </div>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">
+                        <span className="w-3 h-3 rounded-full border border-slate-600" style={{ backgroundColor: activeThemeObj.colorHex }} />
+                        <span>Acento: {activeThemeObj.colorHex}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -647,10 +753,10 @@ export const SettingsView = () => {
                 </div>
 
                 <div className="p-3.5 rounded-xl border border-slate-800 bg-slate-900 flex flex-col justify-between gap-2.5">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Fondo y Superficie</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Superficie & Tarjetas</span>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Tono:</span>
-                    <span className="font-bold text-white font-mono">{activeThemeObj.bgHex}</span>
+                    <span className="text-slate-400">Tono Tarjeta:</span>
+                    <span className="font-bold text-white font-mono">{activeThemeObj.surfaceHex}</span>
                   </div>
                 </div>
               </div>

@@ -9,7 +9,7 @@
     touch-action: pan-y;
     font-family: 'Inter', sans-serif;
     background-color: var(--color-slate-950, #09090b);
-    color: #f8fafc;
+    color: var(--color-slate-100, #f8fafc);
     transition: background-color 0.25s ease, border-color 0.25s ease;
   }
 }
@@ -23,11 +23,11 @@
   background-color: var(--color-slate-950, #09090b);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: var(--color-slate-800, #1e293b);
+  background-color: var(--color-slate-700, #1e293b);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-slate-700, #334155);
+  background-color: var(--color-slate-600, #334155);
 }
 
 /* ========================================================
@@ -35,7 +35,235 @@
    Acento + Fondo y Superficies Sincronizadas
    ======================================================== */
 
-/* 1. Paleta: Rojo Potencia (Carbón Puro / Neutral Dark Black) */
+/* --------------------------------------------------------
+   GRUPO 1: MODOS CLAROS Y LUMINOSOS (Fondos No Oscuros)
+   -------------------------------------------------------- */
+
+/* 1. Blanco Deportivo (Clean Sport White) */
+[data-theme="light-sport"], html[data-theme="light-sport"] {
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #ef4444;
+  --color-red-500: #dc2626;
+  --color-red-600: #b91c1c;
+  --color-red-700: #991b1b;
+  --color-red-800: #7f1d1d;
+  --color-red-900: #450a0a;
+  --color-red-950: #fee2e2;
+
+  --color-slate-950: #f1f5f9; /* Fondo general de la app */
+  --color-slate-900: #ffffff; /* Tarjetas y modales principales */
+  --color-slate-800: #e2e8f0; /* Subpaneles e inputs */
+  --color-slate-700: #cbd5e1; /* Bordes */
+  --color-slate-600: #94a3b8; /* Bordes suaves e iconos */
+  --color-slate-500: #64748b; /* Texto secundario */
+  --color-slate-400: #475569; /* Texto descriptivo */
+  --color-slate-300: #334155; /* Texto regular */
+  --color-slate-200: #1e293b; /* Títulos secundarios */
+  --color-slate-100: #0f172a; /* Encabezados principales */
+  --color-slate-50: #020617;
+  --color-white: #0f172a;     /* Invertido a carbón para que text-white sea visible sobre blanco */
+}
+
+/* 2. Titanio & Platino Claro (Industrial Clean Light) */
+[data-theme="light-titanium"], html[data-theme="light-titanium"] {
+  --color-red-50: #eff6ff;
+  --color-red-100: #dbeafe;
+  --color-red-200: #bfdbfe;
+  --color-red-300: #93c5fd;
+  --color-red-400: #3b82f6;
+  --color-red-500: #2563eb;
+  --color-red-600: #1d4ed8;
+  --color-red-700: #1e40af;
+  --color-red-800: #1e3a8a;
+  --color-red-900: #172554;
+  --color-red-950: #dbeafe;
+
+  --color-slate-950: #eef2f6; /* Fondo titanio suave */
+  --color-slate-900: #f8fafc; /* Tarjetas platino */
+  --color-slate-800: #e2e8f0; /* Inputs */
+  --color-slate-700: #cbd5e1; /* Bordes */
+  --color-slate-600: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #1e293b;
+  --color-slate-100: #0f172a;
+  --color-slate-50: #020617;
+  --color-white: #0f172a;
+}
+
+/* 3. Arena & Marfil Cálido (Warm Light Ivory) */
+[data-theme="light-sand"], html[data-theme="light-sand"] {
+  --color-red-50: #fffbeb;
+  --color-red-100: #fef3c7;
+  --color-red-200: #fde68a;
+  --color-red-300: #fcd34d;
+  --color-red-400: #f59e0b;
+  --color-red-500: #d97706;
+  --color-red-600: #b45309;
+  --color-red-700: #92400e;
+  --color-red-800: #78350f;
+  --color-red-900: #451a03;
+  --color-red-950: #fef3c7;
+
+  --color-slate-950: #f7f4ec; /* Fondo crema suave */
+  --color-slate-900: #fffefb; /* Tarjetas marfil */
+  --color-slate-800: #ede7da; /* Inputs y subpaneles */
+  --color-slate-700: #dfd7c5; /* Bordes pergamino */
+  --color-slate-600: #a89f8d;
+  --color-slate-500: #71695a;
+  --color-slate-400: #524b3e;
+  --color-slate-300: #383228;
+  --color-slate-200: #252019;
+  --color-slate-100: #14110c;
+  --color-slate-50: #080705;
+  --color-white: #14110c;
+}
+
+/* 4. Pizarra Grafito Mate (Equilibrio Medio - Slate) */
+[data-theme="slate-contrast"], html[data-theme="slate-contrast"] {
+  --color-red-50: #f7fee7;
+  --color-red-100: #ecfccb;
+  --color-red-200: #d9f99d;
+  --color-red-300: #bef264;
+  --color-red-400: #a3e635;
+  --color-red-500: #84cc16;
+  --color-red-600: #65a30d;
+  --color-red-700: #4d7c0f;
+  --color-red-800: #3f6212;
+  --color-red-900: #365314;
+  --color-red-950: #1a2e05;
+
+  --color-slate-950: #1e293b; /* Gris pizarra medio (no negro) */
+  --color-slate-900: #2a374a; /* Tarjetas */
+  --color-slate-800: #3b4d66; /* Inputs */
+  --color-slate-700: #4f637f; /* Bordes */
+  --color-slate-600: #64748b;
+  --color-slate-500: #94a3b8;
+  --color-slate-400: #cbd5e1;
+  --color-slate-300: #e2e8f0;
+  --color-slate-200: #f1f5f9;
+  --color-slate-100: #ffffff;
+  --color-slate-50: #ffffff;
+}
+
+/* --------------------------------------------------------
+   GRUPO 2: AMBIENTES VÍVIDOS Y TINTADOS
+   -------------------------------------------------------- */
+
+/* 5. Táctico / Verde Militar (Oliva y Lima Flúor) */
+[data-theme="military-green"], html[data-theme="military-green"] {
+  --color-red-50: #f7fee7;
+  --color-red-100: #ecfccb;
+  --color-red-200: #d9f99d;
+  --color-red-300: #bef264;
+  --color-red-400: #a3e635;
+  --color-red-500: #84cc16;
+  --color-red-600: #65a30d;
+  --color-red-700: #4d7c0f;
+  --color-red-800: #3f6212;
+  --color-red-900: #365314;
+  --color-red-950: #1a2e05;
+
+  --color-slate-950: #0c150e; /* Verde militar oscuro */
+  --color-slate-900: #142417; /* Tarjetas oliva */
+  --color-slate-800: #1b3320; /* Inputs */
+  --color-slate-700: #234229; /* Bordes oliva */
+  --color-slate-600: #34633d;
+}
+
+/* 6. Sunset Neón / Cyberpunk (Rosa Neón y Ciruela) */
+[data-theme="cyber-pink"], html[data-theme="cyber-pink"] {
+  --color-red-50: #fdf2f8;
+  --color-red-100: #fce7f3;
+  --color-red-200: #fbcfe8;
+  --color-red-300: #f9a8d4;
+  --color-red-400: #f472b6;
+  --color-red-500: #ec4899;
+  --color-red-600: #db2777;
+  --color-red-700: #be185d;
+  --color-red-800: #9d174d;
+  --color-red-900: #831843;
+  --color-red-950: #500724;
+
+  --color-slate-950: #140315; /* Ciruela y magenta oscuro */
+  --color-slate-900: #200722; /* Tarjetas */
+  --color-slate-800: #320d36; /* Inputs */
+  --color-slate-700: #45104a; /* Bordes */
+  --color-slate-600: #6a1c72;
+}
+
+/* 7. Carmesí Furia / Blood Sport (Vino Oscuro y Carmesí) */
+[data-theme="crimson-blood"], html[data-theme="crimson-blood"] {
+  --color-red-50: #fff1f2;
+  --color-red-100: #ffe4e6;
+  --color-red-200: #fecdd3;
+  --color-red-300: #fda4af;
+  --color-red-400: #fb7185;
+  --color-red-500: #f43f5e;
+  --color-red-600: #e11d48;
+  --color-red-700: #be123c;
+  --color-red-800: #9f1239;
+  --color-red-900: #881337;
+  --color-red-950: #4c0519;
+
+  --color-slate-950: #150306; /* Fondo rojo sangre carbón */
+  --color-slate-900: #26070c; /* Tarjetas vino oscuro */
+  --color-slate-800: #3b0c13; /* Inputs */
+  --color-slate-700: #4d1219; /* Bordes rubí oscuro */
+  --color-slate-600: #751c27;
+}
+
+/* 8. Azul Zafiro / Ocean Royal (Cobalto Marino y Cyan Glaciar) */
+[data-theme="ocean-royal"], html[data-theme="ocean-royal"] {
+  --color-red-50: #f0f9ff;
+  --color-red-100: #e0f2fe;
+  --color-red-200: #bae6fd;
+  --color-red-300: #7dd3fc;
+  --color-red-400: #38bdf8;
+  --color-red-500: #0ea5e9;
+  --color-red-600: #0284c7;
+  --color-red-700: #0369a1;
+  --color-red-800: #075985;
+  --color-red-900: #0c4a6e;
+  --color-red-950: #082f49;
+
+  --color-slate-950: #030c18; /* Azul zafiro abisal */
+  --color-slate-900: #07172c; /* Tarjetas cobalto marino */
+  --color-slate-800: #0d223f; /* Inputs */
+  --color-slate-700: #102d54; /* Bordes zafiro */
+  --color-slate-600: #184178;
+}
+
+/* 9. Magma Vulcano / Fuego Solar (Carbón Volcánico y Naranja) */
+[data-theme="magma-orange"], html[data-theme="magma-orange"] {
+  --color-red-50: #fff7ed;
+  --color-red-100: #ffedd5;
+  --color-red-200: #fed7aa;
+  --color-red-300: #fdba74;
+  --color-red-400: #fb923c;
+  --color-red-500: #f97316;
+  --color-red-600: #ea580c;
+  --color-red-700: #c2410c;
+  --color-red-800: #9a3412;
+  --color-red-900: #7c2d12;
+  --color-red-950: #431407;
+
+  --color-slate-950: #140702; /* Carbón volcánico */
+  --color-slate-900: #230e04; /* Tarjetas tierra de lava */
+  --color-slate-800: #351707; /* Inputs */
+  --color-slate-700: #481f0b; /* Bordes cobre oscuro */
+  --color-slate-600: #6d3012;
+}
+
+/* --------------------------------------------------------
+   GRUPO 3: CLÁSICOS OSCUROS ÉLITE
+   -------------------------------------------------------- */
+
+/* 10. Rojo Potencia (Carbón Puro / Neutral Dark Black) */
 [data-theme="red"], html[data-theme="red"] {
   --color-red-50: oklch(97.1% .013 17.4);
   --color-red-100: oklch(93.6% .032 17.7);
@@ -49,7 +277,6 @@
   --color-red-900: oklch(39.6% .141 25.7);
   --color-red-950: oklch(25.8% .092 26);
 
-  /* Fondos y Superficies: Carbón Puro / Negro Ónice (Sin azul) */
   --color-slate-950: #09090b;
   --color-slate-900: #121215;
   --color-slate-800: #1b1b22;
@@ -57,7 +284,7 @@
   --color-slate-600: #3f3f50;
 }
 
-/* 2. Paleta: Azul Eléctrico (Deep Midnight Navy) */
+/* 11. Azul Eléctrico (Deep Midnight Navy) */
 [data-theme="blue"], html[data-theme="blue"] {
   --color-red-50: oklch(97% .014 254.6);
   --color-red-100: oklch(93.2% .032 255.6);
@@ -71,7 +298,6 @@
   --color-red-900: oklch(37.9% .146 265.5);
   --color-red-950: oklch(28.2% .091 267.9);
 
-  /* Fondos y Superficies: Midnight Blue Profundo */
   --color-slate-950: #020713;
   --color-slate-900: #081224;
   --color-slate-800: #10203d;
@@ -79,7 +305,7 @@
   --color-slate-600: #284882;
 }
 
-/* 3. Paleta: Verde Esmeralda (Bosque Oscuro / Deep Jade Obsidian) */
+/* 12. Verde Esmeralda (Bosque Oscuro / Deep Jade Obsidian) */
 [data-theme="emerald"], html[data-theme="emerald"] {
   --color-red-50: oklch(97.9% .021 166.1);
   --color-red-100: oklch(95% .04 163.3);
@@ -93,7 +319,6 @@
   --color-red-900: oklch(37.8% .077 168.9);
   --color-red-950: oklch(26.2% .051 172.6);
 
-  /* Fondos y Superficies: Verde Esmeralda / Bosque Oscuro */
   --color-slate-950: #030f0a;
   --color-slate-900: #061b12;
   --color-slate-800: #0d2b1e;
@@ -101,7 +326,7 @@
   --color-slate-600: #236148;
 }
 
-/* 4. Paleta: Morado Neón (Cyber Violeta / Deep Violet Obsidian) */
+/* 13. Morado Neón (Cyber Violeta / Deep Violet Obsidian) */
 [data-theme="purple"], html[data-theme="purple"] {
   --color-red-50: oklch(97.7% .014 308.3);
   --color-red-100: oklch(94.6% .033 307.2);
@@ -115,7 +340,6 @@
   --color-red-900: oklch(38.1% .176 305);
   --color-red-950: oklch(29.1% .149 302.7);
 
-  /* Fondos y Superficies: Violeta / Púrpura Nocturno */
   --color-slate-950: #090312;
   --color-slate-900: #120822;
   --color-slate-800: #1d0f36;
@@ -123,7 +347,7 @@
   --color-slate-600: #472778;
 }
 
-/* 5. Paleta: Oro Olímpico / Ámbar (Carbón Cálido / Bronce Espresso) */
+/* 14. Oro Olímpico / Ámbar (Carbón Cálido / Bronce Espresso) */
 [data-theme="amber"], html[data-theme="amber"] {
   --color-red-50: oklch(98% .016 95);
   --color-red-100: oklch(96.2% .044 95);
@@ -137,7 +361,6 @@
   --color-red-900: oklch(41.4% .112 45.9);
   --color-red-950: oklch(27.9% .077 45.6);
 
-  /* Fondos y Superficies: Carbón Cálido / Bronce */
   --color-slate-950: #0e0903;
   --color-slate-900: #181107;
   --color-slate-800: #271c0d;
@@ -145,7 +368,7 @@
   --color-slate-600: #594224;
 }
 
-/* 6. Paleta: Cian Glaciar (Océano Polar / Deep Cyan Trench) */
+/* 15. Cian Glaciar (Océano Polar / Deep Cyan Trench) */
 [data-theme="cyan"], html[data-theme="cyan"] {
   --color-red-50: oklch(98.4% .019 200.9);
   --color-red-100: oklch(95.6% .045 203.4);
@@ -159,10 +382,49 @@
   --color-red-900: oklch(39.8% .07 227.4);
   --color-red-950: oklch(30.2% .056 229.7);
 
-  /* Fondos y Superficies: Cian Océano Abisal */
   --color-slate-950: #020d14;
   --color-slate-900: #051822;
   --color-slate-800: #0b2635;
   --color-slate-700: #123b50;
   --color-slate-600: #1e5874;
+}
+
+/* ========================================================
+   REGLAS DE CONTRASTE Y LEGIBILIDAD PARA TEMAS CLAROS
+   ======================================================== */
+
+/* Botones principales y de acento sólido: forzar texto blanco puro e iconos */
+[data-theme^="light"] button.bg-red-600,
+[data-theme^="light"] button.bg-red-500,
+[data-theme^="light"] a.bg-red-600,
+[data-theme^="light"] .btn-primary,
+[data-theme^="light"] [class*="from-red-600"],
+[data-theme^="light"] [class*="from-red-500"] {
+  color: #ffffff !important;
+}
+
+[data-theme^="light"] button.bg-red-600 *,
+[data-theme^="light"] button.bg-red-500 *,
+[data-theme^="light"] button.bg-emerald-600 *,
+[data-theme^="light"] button.bg-blue-600 *,
+[data-theme^="light"] [class*="from-red-"] * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Mejorar el relieve de tarjetas en fondo claro */
+[data-theme^="light"] .bg-slate-900 {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Campos de entrada en temas claros */
+[data-theme^="light"] input,
+[data-theme^="light"] select,
+[data-theme^="light"] textarea {
+  color: #0f172a !important;
+}
+
+[data-theme^="light"] input::placeholder,
+[data-theme^="light"] textarea::placeholder {
+  color: #64748b !important;
 }
