@@ -10,7 +10,8 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  signInWithCredential
+  signInWithCredential,
+  updateProfile
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -19,6 +20,8 @@ import {
   persistentMultipleTabManager,
   collection, 
   doc, 
+  getDoc,
+  getDocs,
   onSnapshot, 
   addDoc, 
   updateDoc, 
@@ -106,9 +109,15 @@ export const profileDocRef = defaultRefs.profileDocRef;
 export const inventoryDocRef = defaultRefs.inventoryDocRef;
 export const appUpdateDocRef = defaultRefs.appUpdateDocRef;
 
+// Registro global de usuarios y gimnasios (bajo DEFAULT_GYM_ID para compatibilidad de reglas Firestore)
+export const registeredUsersRef = collection(db, `gyms/${DEFAULT_GYM_ID}/registered_users`);
+export const registeredGymsRef = collection(db, `gyms/${DEFAULT_GYM_ID}/registered_gyms`);
+
 export { 
   collection, 
   doc, 
+  getDoc,
+  getDocs,
   onSnapshot, 
   addDoc, 
   updateDoc, 
@@ -129,5 +138,6 @@ export {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  signInWithCredential
+  signInWithCredential,
+  updateProfile
 };

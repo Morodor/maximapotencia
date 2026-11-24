@@ -1084,7 +1084,7 @@ export const SettingsView = () => {
               </button>
             </div>
             <span className="text-[11px] text-slate-500 mt-1 block">
-              Gimnasio actual: {activeGymId === 'oXaFQadDDaLQbTO0k9dL' ? 'Principal (Bayron Quezada)' : activeGymId}
+              Gimnasio actual: {activeGymId === 'oXaFQadDDaLQbTO0k9dL' ? 'Gimnasio Principal (Máxima Potencia)' : activeGymId}
             </span>
           </div>
 

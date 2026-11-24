@@ -18,6 +18,11 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signInWithCredential,
+  updateProfile,
+  registeredUsersRef,
+  registeredGymsRef,
+  getDoc,
+  getDocs,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -260,14 +265,17 @@ export const AppProvider = ({ children }) => {
   const [powerRecords, setPowerRecords] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [exercises, setExercises] = useState(DEFAULT_EXERCISES_DATA);
-  const [profile, setProfile] = useState({ displayName: 'Bayron Quezada', description: 'Atleta / Entrenador' });
+  const [profile, setProfile] = useState({ displayName: 'Entrenador', description: 'Atleta / Entrenador' });
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [appUpdateInfo, setAppUpdateInfo] = useState(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
-  // Estados de Autenticación Oficial (Firebase Auth)
+  // Estados de Autenticación Oficial (Firebase Auth) & Multi-Usuario
   const [currentUser, setCurrentUser] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
+  const [registeredGyms, setRegisteredGyms] = useState([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Claves de Almacenamiento Local para Modo Invitado
@@ -385,18 +393,72 @@ export const AppProvider = ({ children }) => {
       });
     }
 
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    let unsubUserProfile = null;
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      if (unsubUserProfile) {
+        unsubUserProfile();
+        unsubUserProfile = null;
+      }
+
       if (user) {
         setIsGuestModeState(false);
         try {
           localStorage.setItem('mp_guest_mode', 'false');
         } catch (e) {}
+
+        // Registrar o actualizar usuario en la colección global de usuarios para que Super Admin pueda asignarle gimnasio y rol
+        try {
+          const userEmail = (user.email || '').toLowerCase().trim();
+          const isSuper = ['bayron.quezada@gmail.com', 'unchainedfreemusic@gmail.com'].includes(userEmail);
+          const userDocRef = doc(registeredUsersRef, user.uid);
+          const existingSnap = await getDoc(userDocRef).catch(() => null);
+
+          if (!existingSnap || !existingSnap.exists()) {
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              email: userEmail,
+              displayName: user.displayName || userEmail.split('@')[0] || 'Usuario',
+              photoURL: user.photoURL || '',
+              provider: user.providerData?.[0]?.providerId || 'google',
+              role: isSuper ? 'super_admin' : 'pending',
+              assignedGymId: DEFAULT_GYM_ID,
+              status: 'active',
+              createdAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp()
+            }, { merge: true });
+          } else {
+            await setDoc(userDocRef, {
+              email: userEmail,
+              displayName: user.displayName || existingSnap.data()?.displayName || userEmail.split('@')[0],
+              photoURL: user.photoURL || existingSnap.data()?.photoURL || '',
+              lastLoginAt: serverTimestamp(),
+              ...(isSuper ? { role: 'super_admin', status: 'active' } : {})
+            }, { merge: true });
+          }
+
+          unsubUserProfile = onSnapshot(userDocRef, (snap) => {
+            if (snap.exists()) {
+              const data = { id: snap.id, ...snap.data() };
+              setCurrentUserProfile(data);
+              // Si el Super Admin asignó un gimnasio específico a este usuario, cambiar automáticamente a ese gimnasio
+              if (!isSuper && data.assignedGymId && data.assignedGymId !== getActiveGymId()) {
+                setActiveGymId(data.assignedGymId);
+                setActiveGymIdState(data.assignedGymId);
+              }
+            }
+          }, (err) => console.warn('Aviso al escuchar perfil de usuario:', err));
+        } catch (regErr) {
+          console.warn('Aviso al registrar usuario en directorio:', regErr);
+        }
+      } else {
+        setCurrentUserProfile(null);
       }
     });
 
     return () => {
       unsubAuth();
+      if (unsubUserProfile) unsubUserProfile();
       if (appUrlOpenHandle && typeof appUrlOpenHandle.remove === 'function') {
         appUrlOpenHandle.remove();
       }
@@ -415,6 +477,9 @@ export const AppProvider = ({ children }) => {
   const registerWithEmail = async (email, password, displayName) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      if (displayName && displayName.trim()) {
+        await updateProfile(cred.user, { displayName: displayName.trim() }).catch(() => {});
+      }
       return { success: true, user: cred.user };
     } catch (err) {
       return { success: false, error: err.code || err.message };
@@ -447,14 +512,7 @@ export const AppProvider = ({ children }) => {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // En móviles web, signInWithRedirect evita que el navegador se quede en blanco en /__/auth/handler
-      const isMobileDevice = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 768;
-
-      if (isMobileDevice) {
-        await signInWithRedirect(auth, provider);
-        return { success: true, redirecting: true };
-      }
-
+      // Intentar siempre signInWithPopup primero (funciona en web desktop y móviles modernos sin perder sesión por cookies de terceros)
       try {
         const cred = await signInWithPopup(auth, provider);
         return { success: true, user: cred.user };
@@ -462,7 +520,7 @@ export const AppProvider = ({ children }) => {
         if (
           popupErr.code === 'auth/popup-blocked' || 
           popupErr.code === 'auth/cancelled-popup-request' ||
-          popupErr.code === 'auth/popup-closed-by-user'
+          popupErr.code === 'auth/operation-not-supported-in-this-environment'
         ) {
           console.warn('Popup bloqueado o no soportado, iniciando redirección:', popupErr);
           await signInWithRedirect(auth, provider);
@@ -1613,22 +1671,106 @@ export const AppProvider = ({ children }) => {
     SUPER_ADMIN_EMAILS.includes(currentUser.email.toLowerCase().trim())
   );
 
-  // Entrenador Activo y Permisos
-  const currentCoach = (isSuperAdmin ? coaches.find(c => c.name?.toLowerCase().includes('bayron') || (c.email && c.email.toLowerCase() === 'bayron.quezada@gmail.com')) : null) ||
-    (currentUser?.email ? coaches.find(c => c.email && c.email.toLowerCase() === currentUser.email.toLowerCase()) : null) ||
-    coaches.find(c => c.id === currentCoachId) || 
-    coaches.find(c => c.role === 'head_coach') || 
-    coaches[0] || {
-      id: 'default-hc',
-      name: isSuperAdmin ? 'Bayron Quezada' : (profile?.displayName || 'Bayron Quezada'),
-      role: 'head_coach',
-      title: isSuperAdmin ? 'Super Admin & Creador' : 'Head Coach & Administrador',
-      color: '#ef4444',
-      assignedGroupIds: [],
-      canViewAllAthletes: true
-    };
+  // Suscripción global para Super Admin: todos los usuarios registrados y gimnasios
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setRegisteredUsers([]);
+      setRegisteredGyms([]);
+      return;
+    }
 
-  const isHeadCoach = isSuperAdmin || currentCoach?.role === 'head_coach';
+    const unsubUsers = onSnapshot(registeredUsersRef, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setRegisteredUsers(list);
+    }, (err) => console.warn('Aviso al cargar directorio de usuarios:', err));
+
+    const unsubGyms = onSnapshot(registeredGymsRef, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setRegisteredGyms(list);
+
+      // Asegurar que el Gimnasio Principal esté registrado en el directorio
+      if (!list.some(g => g.id === DEFAULT_GYM_ID)) {
+        setDoc(doc(registeredGymsRef, DEFAULT_GYM_ID), {
+          id: DEFAULT_GYM_ID,
+          name: 'Gimnasio Principal (Máxima Potencia)',
+          isDefault: true,
+          createdAt: serverTimestamp()
+        }, { merge: true }).catch(() => {});
+      }
+    }, (err) => console.warn('Aviso al cargar directorio de gimnasios:', err));
+
+    return () => {
+      unsubUsers();
+      unsubGyms();
+    };
+  }, [isSuperAdmin]);
+
+  // Entrenador Activo y Permisos (Aislado por cuenta autenticada, nunca hereda Bayron Quezada a otros usuarios)
+  const matchedCoachByUser = currentUser
+    ? coaches.find(c =>
+        (c.uid && c.uid === currentUser.uid) ||
+        (c.email && currentUser.email && c.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim())
+      )
+    : null;
+
+  const currentCoach = isSuperAdmin
+    ? (
+        matchedCoachByUser ||
+        coaches.find(c => c.id === currentCoachId) ||
+        coaches.find(c => c.name?.toLowerCase().includes('bayron') || (c.email && c.email.toLowerCase() === 'bayron.quezada@gmail.com')) || {
+          id: 'super-admin',
+          uid: currentUser?.uid,
+          email: currentUser?.email,
+          name: currentUser?.displayName || 'Bayron Quezada',
+          role: 'super_admin',
+          title: 'Super Admin & Creador',
+          color: '#ef4444',
+          assignedGroupIds: [],
+          canViewAllAthletes: true
+        }
+      )
+    : currentUser
+      ? (
+          matchedCoachByUser || {
+            id: `user-${currentUser.uid}`,
+            uid: currentUser.uid,
+            email: currentUser.email,
+            name: currentUserProfile?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Usuario',
+            role: currentUserProfile?.role || 'pending',
+            title: currentUserProfile?.role === 'head_coach'
+              ? 'Head Coach'
+              : currentUserProfile?.role === 'coach'
+                ? 'Entrenador de Cuadrilla'
+                : currentUserProfile?.role === 'assistant'
+                  ? 'Asistente Técnico'
+                  : 'Usuario Registrado (Sin rol asignado)',
+            color: '#3b82f6',
+            assignedGroupIds: [],
+            canViewAllAthletes: currentUserProfile?.role === 'head_coach',
+            status: currentUserProfile?.status || 'active'
+          }
+        )
+      : isGuestMode
+        ? {
+            id: 'guest-hc',
+            name: 'Modo Invitado',
+            role: 'guest',
+            title: 'Entrenamiento Local',
+            color: '#f59e0b',
+            assignedGroupIds: [],
+            canViewAllAthletes: true
+          }
+        : {
+            id: 'viewer-readonly',
+            name: 'Visitante',
+            role: 'viewer',
+            title: 'Solo Lectura',
+            color: '#64748b',
+            assignedGroupIds: [],
+            canViewAllAthletes: false
+          };
+
+  const isHeadCoach = isSuperAdmin || (currentCoach?.role === 'head_coach' && currentCoach?.status !== 'suspended');
 
   // Verifica si el entrenador activo tiene acceso para gestionar un grupo
   const hasAccessToGroup = (groupId) => {
@@ -1774,6 +1916,141 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Asignar rol y gimnasio a cualquier usuario registrado (Solo Super Admin)
+  const assignUserRoleAndGym = async ({
+    uid,
+    email,
+    displayName,
+    gymId,
+    gymName,
+    oldGymId,
+    role,
+    title,
+    pin,
+    color,
+    assignedGroupIds = [],
+    canViewAllAthletes = false,
+    status = 'active'
+  }) => {
+    try {
+      const targetGymId = (gymId || DEFAULT_GYM_ID).trim();
+      const targetEmail = (email || '').toLowerCase().trim();
+      const targetName = (displayName || targetEmail.split('@')[0] || 'Usuario').trim();
+
+      // 1. Asegurar que el gimnasio destino exista en registered_gyms
+      if (targetGymId) {
+        await setDoc(doc(registeredGymsRef, targetGymId), {
+          id: targetGymId,
+          name: gymName?.trim() || (targetGymId === DEFAULT_GYM_ID ? 'Gimnasio Principal (Máxima Potencia)' : targetGymId),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+
+      // 2. Actualizar registro global del usuario si tiene uid
+      if (uid) {
+        await setDoc(doc(registeredUsersRef, uid), {
+          uid,
+          email: targetEmail,
+          displayName: targetName,
+          role,
+          assignedGymId: targetGymId,
+          assignedGymName: gymName?.trim() || (targetGymId === DEFAULT_GYM_ID ? 'Gimnasio Principal (Máxima Potencia)' : targetGymId),
+          title: title || '',
+          status,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+
+      // 3. Sincronizar en la colección coaches del gimnasio destino
+      const targetCoachesRef = getGymRefs(targetGymId).coachesRef;
+      const snap = await getDocs(targetCoachesRef);
+      const existingDoc = snap.docs.find(d => {
+        const data = d.data();
+        return (uid && data.uid === uid) || (targetEmail && data.email?.toLowerCase().trim() === targetEmail);
+      });
+
+      const coachPayload = {
+        uid: uid || existingDoc?.data()?.uid || '',
+        name: targetName,
+        email: targetEmail,
+        role: role || 'coach',
+        title: title?.trim() || (
+          role === 'super_admin' ? 'Super Admin' :
+          role === 'head_coach' ? 'Head Coach' :
+          role === 'assistant' ? 'Asistente Técnico' :
+          role === 'pending' ? 'Pendiente de Asignación' : 'Entrenador de Cuadrilla'
+        ),
+        pin: pin || '',
+        color: color || '#3b82f6',
+        assignedGroupIds: (role === 'head_coach' || role === 'super_admin') ? [] : assignedGroupIds,
+        canViewAllAthletes: (role === 'head_coach' || role === 'super_admin') ? true : Boolean(canViewAllAthletes),
+        status: status || 'active',
+        updatedAt: serverTimestamp()
+      };
+
+      if (existingDoc) {
+        await updateDoc(doc(targetCoachesRef, existingDoc.id), coachPayload);
+      } else if (role !== 'pending') {
+        await addDoc(targetCoachesRef, {
+          ...coachPayload,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 4. Si se movió desde otro gimnasio, limpiar el perfil en el gimnasio anterior
+      if (oldGymId && oldGymId !== targetGymId) {
+        const oldCoachesRef = getGymRefs(oldGymId).coachesRef;
+        const oldSnap = await getDocs(oldCoachesRef);
+        const oldDoc = oldSnap.docs.find(d => {
+          const data = d.data();
+          return (uid && data.uid === uid) || (targetEmail && data.email?.toLowerCase().trim() === targetEmail);
+        });
+        if (oldDoc) {
+          await deleteDoc(doc(oldCoachesRef, oldDoc.id));
+        }
+      }
+
+      showNotification(`Rol "${role}" asignado a ${targetName} en ${gymName || targetGymId}.`);
+      return true;
+    } catch (e) {
+      console.error('Error al asignar rol y gimnasio:', e);
+      showNotification('Error al asignar rol: ' + e.message, true);
+      return false;
+    }
+  };
+
+  const createOrUpdateGym = async ({ id, name, description = '' }) => {
+    try {
+      const cleanId = id.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (!cleanId) return false;
+      await setDoc(doc(registeredGymsRef, cleanId), {
+        id: cleanId,
+        name: name.trim() || cleanId,
+        description: description.trim(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      showNotification(`Gimnasio "${name || cleanId}" guardado correctamente.`);
+      return cleanId;
+    } catch (e) {
+      console.error('Error guardando gimnasio:', e);
+      showNotification('Error al guardar gimnasio: ' + e.message, true);
+      return false;
+    }
+  };
+
+  const deleteRegisteredUser = async (uid) => {
+    try {
+      if (!uid) return false;
+      await deleteDoc(doc(registeredUsersRef, uid));
+      showNotification('Usuario eliminado del directorio global.');
+      return true;
+    } catch (e) {
+      console.error('Error eliminando usuario del directorio:', e);
+      showNotification('Error al eliminar usuario: ' + e.message, true);
+      return false;
+    }
+  };
+
   // Comprobar manualmente si hay actualizaciones (desde Ajustes)
   const checkForUpdatesManual = () => {
     if (hasUpdateAvailable) {
@@ -1844,6 +2121,12 @@ export const AppProvider = ({ children }) => {
       switchGym,
       resetDefaultGym,
       currentUser,
+      currentUserProfile,
+      registeredUsers,
+      registeredGyms,
+      assignUserRoleAndGym,
+      createOrUpdateGym,
+      deleteRegisteredUser,
       isAuthModalOpen,
       setIsAuthModalOpen,
       loginWithEmail,

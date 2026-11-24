@@ -32,12 +32,17 @@ import {
 } from 'lucide-react';
 import { GROUP_COLORS } from '../athletes/GroupManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
+import { DEFAULT_GYM_ID } from '../../config/firebase';
 
 export const AdminView = () => {
   const { 
     currentUser, 
     isSuperAdmin, 
     coaches, 
+    registeredUsers = [],
+    registeredGyms = [],
+    activeGymId,
+    switchGym,
     groups, 
     athletes, 
     sessions, 
@@ -47,6 +52,9 @@ export const AdminView = () => {
     addCoach, 
     updateCoach, 
     deleteCoach, 
+    assignUserRoleAndGym,
+    createOrUpdateGym,
+    deleteRegisteredUser,
     publishAppUpdate, 
     appUpdateInfo, 
     currentAppVersion, 
@@ -57,16 +65,22 @@ export const AdminView = () => {
 
   const [activeTab, setActiveTab] = useState('users'); // 'users' | 'release' | 'broadcast' | 'telemetry'
 
-  // ==================== ESTADO TAB 1: USUARIOS ====================
+  // ==================== ESTADO TAB 1: USUARIOS & GIMNASIOS ====================
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [gymFilter, setGymFilter] = useState('all');
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [editingCoachId, setEditingCoachId] = useState(null);
+  const [editingUserUid, setEditingUserUid] = useState(null);
+  const [editingOldGymId, setEditingOldGymId] = useState(null);
 
   // Formulario Usuario / Entrenador
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('coach'); // 'super_admin' | 'head_coach' | 'coach' | 'assistant'
+  const [role, setRole] = useState('coach'); // 'super_admin' | 'head_coach' | 'coach' | 'assistant' | 'pending'
+  const [targetGymId, setTargetGymId] = useState(DEFAULT_GYM_ID);
+  const [newGymName, setNewGymName] = useState('');
+  const [isCreatingNewGym, setIsCreatingNewGym] = useState(false);
   const [title, setTitle] = useState('');
   const [pin, setPin] = useState('');
   const [color, setColor] = useState(GROUP_COLORS[1].hex);
@@ -119,9 +133,14 @@ export const AdminView = () => {
   // ==================== MANEJADORES DE USUARIOS ====================
   const handleOpenCreateUser = () => {
     setEditingCoachId(null);
+    setEditingUserUid(null);
+    setEditingOldGymId(null);
     setName('');
     setEmail('');
     setRole('coach');
+    setTargetGymId(activeGymId || DEFAULT_GYM_ID);
+    setIsCreatingNewGym(false);
+    setNewGymName('');
     setTitle('Entrenador de Cuadrilla');
     setPin('');
     setColor(GROUP_COLORS[Math.floor(Math.random() * GROUP_COLORS.length)].hex);
@@ -131,17 +150,22 @@ export const AdminView = () => {
     setIsEditingUser(true);
   };
 
-  const handleOpenEditUser = (coach) => {
-    setEditingCoachId(coach.id);
-    setName(coach.name || '');
-    setEmail(coach.email || '');
-    setRole(coach.role || 'coach');
-    setTitle(coach.title || '');
-    setPin(coach.pin || '');
-    setColor(coach.color || GROUP_COLORS[1].hex);
-    setAssignedGroupIds(coach.assignedGroupIds || []);
-    setCanViewAllAthletes(coach.canViewAllAthletes || false);
-    setStatus(coach.status || 'active');
+  const handleOpenEditUser = (userObj) => {
+    setEditingCoachId(userObj.coachId || (userObj.isRegisteredOnly ? null : userObj.id));
+    setEditingUserUid(userObj.uid || null);
+    setEditingOldGymId(userObj.assignedGymId || activeGymId || DEFAULT_GYM_ID);
+    setName(userObj.name || userObj.displayName || '');
+    setEmail(userObj.email || '');
+    setRole(userObj.role || 'pending');
+    setTargetGymId(userObj.assignedGymId || activeGymId || DEFAULT_GYM_ID);
+    setIsCreatingNewGym(false);
+    setNewGymName('');
+    setTitle(userObj.title || '');
+    setPin(userObj.pin || '');
+    setColor(userObj.color || GROUP_COLORS[1].hex);
+    setAssignedGroupIds(userObj.assignedGroupIds || []);
+    setCanViewAllAthletes(userObj.canViewAllAthletes || false);
+    setStatus(userObj.status || 'active');
     setIsEditingUser(true);
   };
 
@@ -149,23 +173,62 @@ export const AdminView = () => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const payload = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role,
-      title: title.trim() || (role === 'head_coach' ? 'Head Coach' : role === 'super_admin' ? 'Super Admin' : 'Entrenador de Cuadrilla'),
-      pin: pin.trim(),
-      color,
-      assignedGroupIds: (role === 'head_coach' || role === 'super_admin') ? [] : assignedGroupIds,
-      canViewAllAthletes: (role === 'head_coach' || role === 'super_admin') ? true : canViewAllAthletes,
-      status
-    };
+    let finalGymId = targetGymId;
+    let finalGymName = registeredGyms.find(g => g.id === targetGymId)?.name || (targetGymId === DEFAULT_GYM_ID ? 'Gimnasio Principal (Máxima Potencia)' : targetGymId);
+
+    if (isCreatingNewGym && newGymName.trim()) {
+      const slug = newGymName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const createdId = await createOrUpdateGym({
+        id: slug || `gym_${Date.now()}`,
+        name: newGymName.trim()
+      });
+      if (createdId) {
+        finalGymId = createdId;
+        finalGymName = newGymName.trim();
+      }
+    }
 
     let ok = false;
-    if (editingCoachId) {
-      ok = await updateCoach(editingCoachId, payload);
+    if (editingUserUid || email.trim()) {
+      ok = await assignUserRoleAndGym({
+        uid: editingUserUid,
+        email: email.trim().toLowerCase(),
+        displayName: name.trim(),
+        gymId: finalGymId,
+        gymName: finalGymName,
+        oldGymId: editingOldGymId,
+        role,
+        title: title.trim(),
+        pin: pin.trim(),
+        color,
+        assignedGroupIds: (role === 'head_coach' || role === 'super_admin') ? [] : assignedGroupIds,
+        canViewAllAthletes: (role === 'head_coach' || role === 'super_admin') ? true : canViewAllAthletes,
+        status
+      });
+    } else if (editingCoachId) {
+      ok = await updateCoach(editingCoachId, {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role,
+        title: title.trim() || (role === 'head_coach' ? 'Head Coach' : role === 'super_admin' ? 'Super Admin' : 'Entrenador de Cuadrilla'),
+        pin: pin.trim(),
+        color,
+        assignedGroupIds: (role === 'head_coach' || role === 'super_admin') ? [] : assignedGroupIds,
+        canViewAllAthletes: (role === 'head_coach' || role === 'super_admin') ? true : canViewAllAthletes,
+        status
+      });
     } else {
-      ok = await addCoach(payload);
+      ok = await addCoach({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role,
+        title: title.trim() || (role === 'head_coach' ? 'Head Coach' : 'Entrenador de Cuadrilla'),
+        pin: pin.trim(),
+        color,
+        assignedGroupIds: (role === 'head_coach' || role === 'super_admin') ? [] : assignedGroupIds,
+        canViewAllAthletes: (role === 'head_coach' || role === 'super_admin') ? true : canViewAllAthletes,
+        status
+      });
     }
 
     if (ok) {
@@ -175,7 +238,15 @@ export const AdminView = () => {
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    const ok = await deleteCoach(userToDelete.id);
+    let ok = false;
+    if (userToDelete.coachId) {
+      ok = await deleteCoach(userToDelete.coachId);
+    }
+    if (userToDelete.uid) {
+      ok = await deleteRegisteredUser(userToDelete.uid);
+    } else if (!userToDelete.coachId && userToDelete.id) {
+      ok = await deleteCoach(userToDelete.id);
+    }
     if (ok) {
       setUserToDelete(null);
     }
@@ -251,16 +322,79 @@ export const AdminView = () => {
     showNotification('Copia de seguridad completa generada y descargada.');
   };
 
+  // Combinar directorio global de usuarios registrados + coaches del gimnasio activo
+  const unifiedUsers = (() => {
+    const map = new Map();
+
+    // 1. Añadir todos los usuarios globales que han iniciado sesión con Google o Correo
+    registeredUsers.forEach(u => {
+      const key = (u.email || u.uid || u.id).toLowerCase().trim();
+      const matchedCoach = coaches.find(c =>
+        (u.uid && c.uid === u.uid) ||
+        (u.email && c.email && c.email.toLowerCase().trim() === u.email.toLowerCase().trim())
+      );
+      map.set(key, {
+        id: u.uid || u.id,
+        uid: u.uid || u.id,
+        coachId: matchedCoach?.id || null,
+        name: matchedCoach?.name || u.displayName || u.email?.split('@')[0] || 'Usuario',
+        email: u.email || '',
+        role: matchedCoach?.role || u.role || 'pending',
+        title: matchedCoach?.title || u.title || (u.role === 'pending' ? 'Nuevo Usuario (Sin Rol)' : 'Entrenador'),
+        pin: matchedCoach?.pin || '',
+        color: matchedCoach?.color || '#3b82f6',
+        assignedGroupIds: matchedCoach?.assignedGroupIds || [],
+        canViewAllAthletes: matchedCoach?.canViewAllAthletes ?? false,
+        status: matchedCoach?.status || u.status || 'active',
+        assignedGymId: u.assignedGymId || DEFAULT_GYM_ID,
+        assignedGymName: u.assignedGymName || registeredGyms.find(g => g.id === (u.assignedGymId || DEFAULT_GYM_ID))?.name || (u.assignedGymId === DEFAULT_GYM_ID || !u.assignedGymId ? 'Gimnasio Principal' : u.assignedGymId),
+        provider: u.provider || 'google',
+        isRegisteredUser: true
+      });
+    });
+
+    // 2. Añadir coaches manuales del gimnasio activo que no estén aún en registeredUsers
+    coaches.forEach(c => {
+      const key = (c.email || c.id).toLowerCase().trim();
+      if (!map.has(key)) {
+        map.set(key, {
+          ...c,
+          coachId: c.id,
+          uid: c.uid || null,
+          assignedGymId: activeGymId || DEFAULT_GYM_ID,
+          assignedGymName: registeredGyms.find(g => g.id === (activeGymId || DEFAULT_GYM_ID))?.name || (activeGymId === DEFAULT_GYM_ID ? 'Gimnasio Principal' : activeGymId),
+          isRegisteredUser: false
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.role === 'pending' && b.role !== 'pending') return -1;
+      if (b.role === 'pending' && a.role !== 'pending') return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  })();
+
   // Filtrado de usuarios
-  const filteredCoaches = coaches.filter(c => {
+  const filteredUsers = unifiedUsers.filter(c => {
     const matchesSearch = 
       (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+      (c.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.assignedGymName || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (roleFilter === 'all') return matchesSearch;
-    return matchesSearch && c.role === roleFilter;
+    const matchesRole = roleFilter === 'all'
+      ? true
+      : roleFilter === 'suspended'
+        ? c.status === 'suspended'
+        : c.role === roleFilter;
+
+    const matchesGym = gymFilter === 'all' ? true : c.assignedGymId === gymFilter;
+
+    return matchesSearch && matchesRole && matchesGym;
   });
+
+  const pendingCount = unifiedUsers.filter(u => u.role === 'pending').length;
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-200">
@@ -312,7 +446,12 @@ export const AdminView = () => {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Usuarios & Roles ({coaches.length})</span>
+            <span>Usuarios & Gimnasios ({unifiedUsers.length})</span>
+            {pendingCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse">
+                {pendingCount} nuevos
+              </span>
+            )}
           </button>
 
           <button
@@ -357,20 +496,45 @@ export const AdminView = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* TAB 1: GESTIÓN DE USUARIOS & ROLES                       */}
+      {/* TAB 1: GESTIÓN DE USUARIOS, ROLES & GIMNASIOS             */}
       {/* ========================================================= */}
       {activeTab === 'users' && (
         <div className="space-y-4 animate-in fade-in">
+          {/* Selector de Gimnasio Activo para Supervisión */}
+          <div className="bg-slate-900/90 border border-amber-500/20 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Database className="w-4 h-4 text-amber-400 shrink-0" />
+              <div className="text-xs">
+                <span className="text-slate-400">Gimnasio en vista: </span>
+                <strong className="text-white">
+                  {registeredGyms.find(g => g.id === activeGymId)?.name || (activeGymId === DEFAULT_GYM_ID ? 'Gimnasio Principal (Máxima Potencia)' : activeGymId)}
+                </strong>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={activeGymId || DEFAULT_GYM_ID}
+                onChange={(e) => switchGym(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-xl py-1.5 px-3 text-xs text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value={DEFAULT_GYM_ID}>Gimnasio Principal ({DEFAULT_GYM_ID.slice(0, 6)}...)</option>
+                {registeredGyms.filter(g => g.id !== DEFAULT_GYM_ID).map(g => (
+                  <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Barra de Filtros y Acción */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por nombre, correo o título..."
+                  placeholder="Buscar por nombre, correo o gimnasio..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
@@ -381,9 +545,23 @@ export const AdminView = () => {
                 className="bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="all">Todos los roles</option>
+                <option value="pending">Sin rol / Pendientes ({pendingCount})</option>
                 <option value="head_coach">Head Coach</option>
                 <option value="coach">Entrenador</option>
                 <option value="assistant">Asistente</option>
+                <option value="suspended">Suspendidos</option>
+              </select>
+
+              <select
+                value={gymFilter}
+                onChange={(e) => setGymFilter(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="all">Todos los gimnasios</option>
+                <option value={DEFAULT_GYM_ID}>Mi Gimnasio Principal</option>
+                {registeredGyms.filter(g => g.id !== DEFAULT_GYM_ID).map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
               </select>
             </div>
 
@@ -398,8 +576,9 @@ export const AdminView = () => {
 
           {/* Directorio de Usuarios */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredCoaches.map((coach) => {
-              const isSuper = coach.name?.toLowerCase().includes('bayron') || coach.email?.toLowerCase().includes('bayron.quezada');
+            {filteredUsers.map((coach) => {
+              const isSuper = coach.email?.toLowerCase().includes('bayron.quezada') || coach.email?.toLowerCase().includes('unchainedfreemusic') || coach.role === 'super_admin';
+              const isPending = !isSuper && coach.role === 'pending';
               const isCurrent = currentUser?.email && coach.email && currentUser.email.toLowerCase() === coach.email.toLowerCase();
 
               return (
@@ -408,6 +587,8 @@ export const AdminView = () => {
                   className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
                     isSuper 
                       ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/20 border-amber-500/40 shadow-lg' 
+                      : isPending
+                      ? 'bg-gradient-to-br from-slate-900 to-red-950/20 border-amber-500/50 shadow-md'
                       : coach.status === 'suspended'
                       ? 'bg-slate-950/60 border-red-950/40 opacity-70'
                       : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
@@ -420,7 +601,7 @@ export const AdminView = () => {
                           className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm text-white shrink-0 shadow-md relative"
                           style={{ backgroundColor: coach.color || '#3b82f6' }}
                         >
-                          {coach.name ? coach.name.substring(0, 2).toUpperCase() : 'CO'}
+                          {coach.name ? coach.name.substring(0, 2).toUpperCase() : 'US'}
                           {isSuper && (
                             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow">
                               <Crown className="w-3 h-3 fill-slate-950" />
@@ -436,20 +617,22 @@ export const AdminView = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 truncate">{coach.title || 'Entrenador'}</p>
+                          <p className="text-xs text-slate-400 truncate">{coach.title || 'Usuario'}</p>
                         </div>
                       </div>
 
                       <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
                         isSuper
                           ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : isPending
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
                           : coach.role === 'head_coach'
                           ? 'bg-red-500/20 text-red-300 border-red-500/40'
                           : coach.role === 'assistant'
                           ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
                           : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                       }`}>
-                        {isSuper ? 'Super Admin' : coach.role === 'head_coach' ? 'Head Coach' : coach.role === 'assistant' ? 'Asistente' : 'Entrenador'}
+                        {isSuper ? 'Super Admin' : isPending ? 'Sin Rol' : coach.role === 'head_coach' ? 'Head Coach' : coach.role === 'assistant' ? 'Asistente' : 'Entrenador'}
                       </span>
                     </div>
 
@@ -459,6 +642,13 @@ export const AdminView = () => {
                         <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span className="truncate font-mono">
                           {coach.email || <span className="text-slate-600 italic">Sin correo vinculado</span>}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 truncate">
+                        <Database className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate text-slate-300 font-medium">
+                          {coach.assignedGymName || 'Gimnasio Principal'}
                         </span>
                       </div>
 
@@ -864,6 +1054,46 @@ export const AdminView = () => {
                 </span>
               </div>
 
+              {/* Selector de Gimnasio Destino */}
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold text-amber-300 uppercase">
+                    Gimnasio Asignado
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingNewGym(!isCreatingNewGym)}
+                    className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline"
+                  >
+                    {isCreatingNewGym ? 'Elegir existente' : '+ Crear nuevo gimnasio'}
+                  </button>
+                </div>
+
+                {isCreatingNewGym ? (
+                  <input
+                    type="text"
+                    value={newGymName}
+                    onChange={(e) => setNewGymName(e.target.value)}
+                    placeholder="Nombre del nuevo gimnasio (Ej. Club Atlético Sur)"
+                    className="w-full bg-slate-800 border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                ) : (
+                  <select
+                    value={targetGymId}
+                    onChange={(e) => setTargetGymId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value={DEFAULT_GYM_ID}>Mi Gimnasio Principal (Máxima Potencia)</option>
+                    {registeredGyms.filter(g => g.id !== DEFAULT_GYM_ID).map(g => (
+                      <option key={g.id} value={g.id}>{g.name} ({g.id})</option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Al iniciar sesión con Google, este usuario entrará automáticamente al gimnasio seleccionado con el rol asignado.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Rol en el Gimnasio</label>
@@ -872,9 +1102,10 @@ export const AdminView = () => {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
-                    <option value="head_coach">Head Coach (Control Total)</option>
+                    <option value="head_coach">Head Coach (Control Total del Gym)</option>
                     <option value="coach">Entrenador de Cuadrilla</option>
                     <option value="assistant">Asistente / Preparador</option>
+                    <option value="pending">Sin Rol (Pendiente / Solo Lectura)</option>
                   </select>
                 </div>
 

@@ -208,12 +208,30 @@ export const AuthModal = ({ isOpen, onClose }) => {
 
                 <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex flex-col items-center justify-center gap-1">
                   <div className="flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-400" />
-                    <span>Perfil: <strong>{currentCoach?.name || 'Head Coach'}</strong></span>
+                    <Crown className={`w-4 h-4 ${isSuperAdmin || currentCoach?.role === 'head_coach' ? 'text-amber-400' : 'text-blue-400'}`} />
+                    <span>Perfil: <strong>{currentCoach?.name || currentUser.displayName || currentUser.email?.split('@')[0]}</strong></span>
                   </div>
-                  {isSuperAdmin && (
+                  {isSuperAdmin ? (
                     <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-0.5">
                       Super Administrador General
+                    </span>
+                  ) : (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-0.5 border ${
+                      currentCoach?.role === 'head_coach'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                        : currentCoach?.role === 'coach'
+                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                          : currentCoach?.role === 'assistant'
+                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                    }`}>
+                      {currentCoach?.role === 'head_coach'
+                        ? 'Head Coach'
+                        : currentCoach?.role === 'coach'
+                          ? 'Entrenador de Cuadrilla'
+                          : currentCoach?.role === 'assistant'
+                            ? 'Asistente Técnico'
+                            : 'Sin rol asignado (Pendiente)'}
                     </span>
                   )}
                 </div>

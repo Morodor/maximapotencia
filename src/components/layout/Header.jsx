@@ -79,9 +79,15 @@ export const Header = () => {
 
           {/* Tarjeta Interactiva del Entrenador Activo */}
           <button
-            onClick={() => setIsSwitcherOpen(true)}
+            onClick={() => {
+              if (isHeadCoach || isGuestMode) {
+                setIsSwitcherOpen(true);
+              } else {
+                setIsAuthModalOpen(true);
+              }
+            }}
             className="flex items-center gap-3 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 px-3.5 py-2 rounded-2xl shadow-sm backdrop-blur transition-all active:scale-95 group text-left"
-            title="Cambiar de entrenador o gestionar equipo"
+            title={isHeadCoach || isGuestMode ? 'Cambiar de entrenador o gestionar equipo' : 'Tu perfil y rol asignado'}
           >
             <div 
               className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs border border-white/10 shadow-md relative shrink-0"
