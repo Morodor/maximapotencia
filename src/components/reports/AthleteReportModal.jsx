@@ -1,5 +1,5 @@
 // src/components/reports/AthleteReportModal.jsx
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RadarChart } from './RadarChart';
 import { exportElementToPdf, shareReportNative } from '../../utils/pdfGenerator';
@@ -33,21 +33,25 @@ export const AthleteReportModal = ({ athlete, isOpen, onClose }) => {
   const [coachNotes, setCoachNotes] = useState('Atleta con excelente compromiso y transferencia neuromuscular. Se recomienda priorizar la fase de desaceleración y volumen de trabajo en el rango de potencia máxima (75-80% 1RM).');
   const [athletePhone, setAthletePhone] = useState(athlete?.phone || '');
 
-  // Si no está abierto o no hay atleta
-  if (!isOpen || !athlete) return null;
+  useEffect(() => {
+    setAthletePhone(athlete?.phone || '');
+  }, [athlete?.id, athlete?.phone]);
 
-  const athleteGroups = getAthleteGroups(athlete);
-  const weight = athlete.weight || 0;
-  const height = athlete.height || 0;
+  const athleteId = athlete?.id || null;
+  const athleteGroups = athlete ? getAthleteGroups(athlete) : [];
+  const weight = athlete?.weight || 0;
+  const height = athlete?.height || 0;
 
   // Filtrar registros del atleta
   const athleteRMs = useMemo(() => {
-    return rmRecords.filter(r => r.userId === athlete.id);
-  }, [rmRecords, athlete.id]);
+    if (!athleteId) return [];
+    return rmRecords.filter(r => r.userId === athleteId);
+  }, [rmRecords, athleteId]);
 
   const athletePowers = useMemo(() => {
-    return powerRecords.filter(r => r.userId === athlete.id);
-  }, [powerRecords, athlete.id]);
+    if (!athleteId) return [];
+    return powerRecords.filter(r => r.userId === athleteId);
+  }, [powerRecords, athleteId]);
 
   // Mejores levantamientos
   const bestSquat = useMemo(() => {
@@ -164,6 +168,9 @@ export const AthleteReportModal = ({ athlete, isOpen, onClose }) => {
     });
     return res.slice(0, 4);
   }, [athleteRMs]);
+
+  // Renderizado condicional DESPUÉS de todos los hooks (evita React error #310)
+  if (!isOpen || !athlete) return null;
 
   // Manejador de descarga de PDF
   const handleDownloadPdf = async () => {

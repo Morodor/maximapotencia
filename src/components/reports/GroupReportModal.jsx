@@ -27,16 +27,17 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
   const [pdfTheme, setPdfTheme] = useState('dark');
   const [isExporting, setIsExporting] = useState(false);
 
-  if (!isOpen || !group) return null;
-
   // Filtrar atletas miembros de esta cuadrilla
-  const groupAthletes = athletes.filter(a => 
-    (a.groupIds && a.groupIds.includes(group.id)) || 
-    (group.athleteIds && group.athleteIds.includes(a.id))
-  );
+  const groupAthletes = useMemo(() => {
+    if (!group) return [];
+    return athletes.filter(a => 
+      (a.groupIds && a.groupIds.includes(group.id)) || 
+      (group.athleteIds && group.athleteIds.includes(a.id))
+    );
+  }, [athletes, group]);
 
   // Coach a cargo
-  const assignedCoach = coaches.find(c => c.id === group.coachId) || currentCoach;
+  const assignedCoach = group ? (coaches.find(c => c.id === group.coachId) || currentCoach) : currentCoach;
 
   // Helpers para calcular mejores marcas por atleta
   const getAthleteBestLift = (athleteId, keywords) => {
@@ -139,6 +140,9 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
       topJumpers
     };
   }, [groupAthletes, rmRecords, powerRecords]);
+
+  // Renderizado condicional DESPUÉS de todos los hooks (evita React error #310)
+  if (!isOpen || !group) return null;
 
   // Manejador descarga PDF
   const handleDownloadPdf = async () => {
