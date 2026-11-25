@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { navItems } from './Sidebar';
 import { hapticTap } from '../../utils/feedback';
+import { UserAvatar } from '../common/UserAvatar';
 import { 
   LayoutDashboard, 
   Users, 
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const MobileNav = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, isSuperAdmin } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, currentUserProfile, currentCoach, setIsAuthModalOpen, isGuestMode, isSuperAdmin } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   const mainButtons = [
@@ -75,22 +76,33 @@ export const MobileNav = () => {
             className="mb-3 p-3 bg-gradient-to-r from-slate-800/90 via-slate-800/70 to-slate-900 border border-slate-700/80 hover:border-slate-600 rounded-2xl flex items-center justify-between cursor-pointer active:scale-98 transition-all shrink-0 shadow-md group"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${
-                currentUser 
-                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
-                  : isGuestMode
-                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                  : 'bg-red-600/20 border-red-500/40 text-red-400'
-              }`}>
-                {currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-5 h-5" />}
-              </div>
+              {currentUser ? (
+                <UserAvatar
+                  profile={currentUserProfile || currentCoach}
+                  name={currentUserProfile?.displayName || currentUser.displayName}
+                  email={currentUser.email}
+                  color={currentUserProfile?.color || currentCoach?.color}
+                  size="md"
+                  showCrown={isSuperAdmin}
+                />
+              ) : (
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border ${
+                  isGuestMode
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                    : 'bg-red-600/20 border-red-500/40 text-red-400'
+                }`}>
+                  <User className="w-5 h-5" />
+                </div>
+              )}
               <div className="min-w-0 text-left">
                 <div className="flex items-center gap-1.5">
                   {currentUser && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>}
                   {isGuestMode && <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>}
                   <p className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
                     {currentUser 
-                      ? (currentUser.displayName || currentUser.email?.split('@')[0] || 'Mi Perfil')
+                      ? (currentUserProfile?.nickname
+                          ? `@${currentUserProfile.nickname}`
+                          : (currentUserProfile?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Mi Perfil'))
                       : isGuestMode
                       ? 'Modo Invitado Activo'
                       : 'Cuenta & Sesión'}
@@ -98,7 +110,7 @@ export const MobileNav = () => {
                 </div>
                 <p className="text-[11px] text-slate-400 truncate">
                   {currentUser 
-                    ? currentUser.email 
+                    ? (currentUserProfile?.specialty || currentUser.email)
                     : isGuestMode
                     ? 'Guardando solo en este teléfono (LocalStorage)'
                     : 'Toca para iniciar sesión o registrarte'}

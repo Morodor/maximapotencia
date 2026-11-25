@@ -5,6 +5,7 @@ import { ShieldCheck, Wifi, Activity, Crown, ChevronDown, Users, Rocket, User, L
 import { CoachSwitcherModal } from '../coaches/CoachSwitcherModal';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { AuthModal } from '../auth/AuthModal';
+import { UserAvatar } from '../common/UserAvatar';
 
 export const Header = () => {
   const { 
@@ -17,6 +18,7 @@ export const Header = () => {
     appUpdateInfo,
     setIsUpdateModalOpen,
     currentUser,
+    currentUserProfile,
     isAuthModalOpen,
     setIsAuthModalOpen,
     isGuestMode
@@ -89,21 +91,22 @@ export const Header = () => {
             className="flex items-center gap-3 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 px-3.5 py-2 rounded-2xl shadow-sm backdrop-blur transition-all active:scale-95 group text-left"
             title={isHeadCoach || isGuestMode ? 'Cambiar de entrenador o gestionar equipo' : 'Tu perfil y rol asignado'}
           >
-            <div 
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-xs border border-white/10 shadow-md relative shrink-0"
-              style={{ backgroundColor: currentCoach?.color || '#ef4444' }}
-            >
-              {coachInitials}
-              {isHeadCoach && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center shadow">
-                  <Crown className="w-2.5 h-2.5 fill-current" />
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              profile={currentCoach}
+              name={currentCoach?.name || 'Entrenador'}
+              email={currentUser?.email}
+              color={currentCoach?.color || '#ef4444'}
+              size="md"
+              showCrown={isHeadCoach}
+            />
 
             <div className="text-left text-xs pr-1">
               <p className="font-bold text-white flex items-center gap-1.5 leading-tight group-hover:text-red-400 transition-colors">
-                <span>{currentCoach?.name || 'Entrenador'}</span>
+                <span>
+                  {currentCoach?.nickname
+                    ? `${currentCoach.name} (@${currentCoach.nickname})`
+                    : (currentCoach?.name || 'Entrenador')}
+                </span>
                 {isHeadCoach ? (
                   <Crown className="w-3 h-3 text-amber-400 inline" />
                 ) : (
@@ -123,20 +126,26 @@ export const Header = () => {
             <button
               onClick={() => setIsAuthModalOpen(true)}
               className="flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 px-3 py-2 rounded-2xl shadow-sm backdrop-blur transition-all active:scale-95 group text-left"
-              title="Cuenta de usuario conectada"
+              title="Abrir Suite de Perfil y Cuenta"
             >
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shrink-0">
-                <User className="w-4 h-4" />
-              </div>
+              <UserAvatar
+                profile={currentUserProfile || currentCoach}
+                name={currentUserProfile?.displayName || currentUser.displayName}
+                email={currentUser.email}
+                color={currentUserProfile?.color || '#10b981'}
+                size="md"
+              />
               <div className="hidden sm:block text-left text-xs pr-1">
                 <div className="flex items-center gap-1.5 leading-tight">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                  <span className="font-bold text-white group-hover:text-emerald-400 transition-colors truncate max-w-[110px]">
-                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'Conectado'}
+                  <span className="font-bold text-white group-hover:text-emerald-400 transition-colors truncate max-w-[120px]">
+                    {currentUserProfile?.nickname
+                      ? `@${currentUserProfile.nickname}`
+                      : (currentUserProfile?.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Conectado')}
                   </span>
                 </div>
-                <p className="text-slate-500 text-[10px] font-medium truncate max-w-[110px] mt-0.5">
-                  {currentUser.email}
+                <p className="text-slate-500 text-[10px] font-medium truncate max-w-[120px] mt-0.5">
+                  {currentUserProfile?.specialty || currentUser.email}
                 </p>
               </div>
             </button>

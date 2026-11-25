@@ -420,6 +420,10 @@ export const AppProvider = ({ children }) => {
               email: userEmail,
               displayName: user.displayName || userEmail.split('@')[0] || 'Usuario',
               photoURL: user.photoURL || '',
+              googlePhotoURL: user.photoURL || '',
+              avatarType: user.photoURL ? 'photo' : 'initials',
+              avatarUrl: user.photoURL || '',
+              color: isSuper ? '#ef4444' : '#3b82f6',
               provider: user.providerData?.[0]?.providerId || 'google',
               role: isSuper ? 'super_admin' : 'pending',
               assignedGymId: DEFAULT_GYM_ID,
@@ -428,10 +432,12 @@ export const AppProvider = ({ children }) => {
               lastLoginAt: serverTimestamp()
             }, { merge: true });
           } else {
+            const existingData = existingSnap.data() || {};
             await setDoc(userDocRef, {
               email: userEmail,
-              displayName: user.displayName || existingSnap.data()?.displayName || userEmail.split('@')[0],
-              photoURL: user.photoURL || existingSnap.data()?.photoURL || '',
+              displayName: existingData.displayName || user.displayName || userEmail.split('@')[0],
+              photoURL: existingData.photoURL || user.photoURL || '',
+              googlePhotoURL: user.photoURL || existingData.googlePhotoURL || '',
               lastLoginAt: serverTimestamp(),
               ...(isSuper ? { role: 'super_admin', status: 'active' } : {})
             }, { merge: true });
@@ -1740,7 +1746,7 @@ export const AppProvider = ({ children }) => {
       )
     : null;
 
-  const currentCoach = isSuperAdmin
+  const rawResolvedCoach = isSuperAdmin
     ? (
         matchedCoachByUser ||
         coaches.find(c => c.id === currentCoachId) ||
@@ -1796,6 +1802,25 @@ export const AppProvider = ({ children }) => {
             assignedGroupIds: [],
             canViewAllAthletes: false
           };
+
+  const currentCoach = currentUser && currentUserProfile
+    ? {
+        ...rawResolvedCoach,
+        name: currentUserProfile.displayName || rawResolvedCoach.name,
+        nickname: currentUserProfile.nickname || rawResolvedCoach.nickname || '',
+        title: currentUserProfile.title || rawResolvedCoach.title,
+        color: currentUserProfile.color || rawResolvedCoach.color,
+        avatarType: currentUserProfile.avatarType || rawResolvedCoach.avatarType || (currentUserProfile.avatarUrl || currentUserProfile.photoURL ? 'photo' : 'initials'),
+        avatarUrl: currentUserProfile.avatarUrl || rawResolvedCoach.avatarUrl || '',
+        avatarPreset: currentUserProfile.avatarPreset || rawResolvedCoach.avatarPreset || '',
+        photoURL: currentUserProfile.photoURL || rawResolvedCoach.photoURL || currentUser.photoURL || '',
+        specialty: currentUserProfile.specialty || rawResolvedCoach.specialty || '',
+        certification: currentUserProfile.certification || rawResolvedCoach.certification || '',
+        bio: currentUserProfile.bio || rawResolvedCoach.bio || '',
+        location: currentUserProfile.location || '',
+        instagram: currentUserProfile.instagram || ''
+      }
+    : rawResolvedCoach;
 
   const isHeadCoach = isSuperAdmin || (currentCoach?.role === 'head_coach' && currentCoach?.status !== 'suspended');
 
@@ -2130,6 +2155,73 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Actualizar Suite de Perfil del usuario autenticado y sincronizar ficha de coach
+  const updateUserProfile = async (updates = {}) => {
+    if (!currentUser) {
+      showNotification('Debes iniciar sesión para editar tu perfil.', true);
+      return false;
+    }
+    try {
+      const userEmail = (currentUser.email || '').toLowerCase().trim();
+      const sanitized = {
+        displayName: (updates.displayName || currentUser.displayName || userEmail.split('@')[0] || 'Usuario').trim(),
+        nickname: (updates.nickname || '').trim(),
+        title: (updates.title || '').trim(),
+        specialty: (updates.specialty || '').trim(),
+        certification: (updates.certification || '').trim(),
+        location: (updates.location || '').trim(),
+        instagram: (updates.instagram || '').trim(),
+        bio: (updates.bio || '').trim(),
+        pin: (updates.pin || '').trim(),
+        avatarType: updates.avatarType || 'initials',
+        avatarUrl: updates.avatarUrl || '',
+        avatarPreset: updates.avatarPreset || '',
+        photoURL: updates.photoURL || '',
+        color: updates.color || '#3b82f6',
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(doc(registeredUsersRef, currentUser.uid), sanitized, { merge: true });
+
+      if (sanitized.displayName) {
+        updateProfile(currentUser, { displayName: sanitized.displayName }).catch(() => {});
+      }
+
+      const activeCoachesRef = getGymRefs(activeGymId).coachesRef;
+      const coachMatch = coaches.find(c =>
+        (c.uid && c.uid === currentUser.uid) ||
+        (c.email && userEmail && c.email.toLowerCase().trim() === userEmail)
+      );
+
+      if (coachMatch) {
+        await updateDoc(doc(activeCoachesRef, coachMatch.id), {
+          uid: currentUser.uid,
+          email: userEmail,
+          name: sanitized.displayName,
+          nickname: sanitized.nickname,
+          title: sanitized.title || coachMatch.title || '',
+          color: sanitized.color,
+          avatarType: sanitized.avatarType,
+          avatarUrl: sanitized.avatarUrl,
+          avatarPreset: sanitized.avatarPreset,
+          photoURL: sanitized.photoURL,
+          specialty: sanitized.specialty,
+          certification: sanitized.certification,
+          bio: sanitized.bio,
+          pin: sanitized.pin,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      showNotification('¡Perfil actualizado con éxito!');
+      return true;
+    } catch (e) {
+      console.error('Error actualizando perfil de usuario:', e);
+      showNotification('Error al actualizar perfil: ' + e.message, true);
+      return false;
+    }
+  };
+
   // Comprobar manualmente si hay actualizaciones (desde Ajustes)
   const checkForUpdatesManual = () => {
     if (hasUpdateAvailable) {
@@ -2207,6 +2299,7 @@ export const AppProvider = ({ children }) => {
       createOrUpdateGym,
       createMyGym,
       deleteRegisteredUser,
+      updateUserProfile,
       isAuthModalOpen,
       setIsAuthModalOpen,
       loginWithEmail,

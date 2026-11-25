@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { UserAvatar } from '../common/UserAvatar';
 import { 
   LayoutDashboard, 
   Users, 
@@ -34,7 +35,7 @@ export const navItems = [
 ];
 
 export const Sidebar = () => {
-  const { currentPanel, setCurrentPanel, currentUser, setIsAuthModalOpen, isGuestMode, currentAppVersion, isSuperAdmin } = useApp();
+  const { currentPanel, setCurrentPanel, currentUser, currentUserProfile, currentCoach, setIsAuthModalOpen, isGuestMode, currentAppVersion, isSuperAdmin } = useApp();
 
   return (
     <aside className="w-60 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-2.5">
@@ -59,22 +60,31 @@ export const Sidebar = () => {
             className="w-full flex items-center justify-between p-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-900 border border-slate-700/60 hover:border-slate-600 transition-all text-left group"
           >
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                isSuperAdmin
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 ring-1 ring-amber-500/30'
-                  : currentUser 
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                  : isGuestMode
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                  : 'bg-red-600/20 text-red-400 border border-red-500/30'
-              }`}>
-                {isSuperAdmin ? <Crown className="w-3.5 h-3.5 text-amber-400" /> : currentUser?.email ? currentUser.email[0].toUpperCase() : <User className="w-3.5 h-3.5" />}
-              </div>
+              {currentUser ? (
+                <UserAvatar
+                  profile={currentUserProfile || currentCoach}
+                  name={currentUserProfile?.displayName || currentUser.displayName}
+                  email={currentUser.email}
+                  color={currentUserProfile?.color || currentCoach?.color}
+                  size="xs"
+                  showCrown={isSuperAdmin}
+                />
+              ) : (
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                  isGuestMode
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : 'bg-red-600/20 text-red-400 border border-red-500/30'
+                }`}>
+                  <User className="w-3.5 h-3.5" />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="text-xs font-bold text-white truncate group-hover:text-red-400 transition-colors">
                     {currentUser 
-                      ? (currentUser.displayName || currentUser.email?.split('@')[0]) 
+                      ? (currentUserProfile?.nickname
+                          ? `@${currentUserProfile.nickname}`
+                          : (currentUserProfile?.displayName || currentUser.displayName || currentUser.email?.split('@')[0]))
                       : isGuestMode
                       ? 'Modo Invitado'
                       : 'Iniciar Sesión'}
@@ -86,7 +96,7 @@ export const Sidebar = () => {
                   )}
                 </div>
                 <p className="text-[10px] text-slate-400 truncate leading-tight">
-                  {isSuperAdmin ? 'Super Admin • Control Total' : currentUser ? currentUser.email : isGuestMode ? 'Solo LocalStorage' : 'Cuenta & Acceso'}
+                  {isSuperAdmin ? 'Super Admin • Control Total' : currentUser ? (currentUserProfile?.specialty || currentUser.email) : isGuestMode ? 'Solo LocalStorage' : 'Cuenta & Acceso'}
                 </p>
               </div>
             </div>

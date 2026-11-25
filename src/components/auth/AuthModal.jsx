@@ -18,6 +18,7 @@ import {
   Database,
   ShieldAlert
 } from 'lucide-react';
+import { ProfileSuite } from './ProfileSuite';
 
 export const GoogleIcon = ({ className = "w-4 h-4" }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -169,7 +170,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      <div className={`bg-slate-900 border border-slate-800 rounded-3xl w-full ${currentUser ? 'max-w-xl' : 'max-w-md'} overflow-hidden shadow-2xl flex flex-col max-h-[92vh]`}>
         {/* Cabecera */}
         <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-red-950/40 via-slate-900 to-slate-900">
           <div className="flex items-center gap-3">
@@ -177,8 +178,12 @@ export const AuthModal = ({ isOpen, onClose }) => {
               <ShieldCheck className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Autenticación & Cuenta</h3>
-              <p className="text-xs text-slate-400">Acceso oficial a Máxima Potencia</p>
+              <h3 className="text-base font-bold text-white">
+                {currentUser ? 'Suite de Perfil & Cuenta' : 'Autenticación & Cuenta'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {currentUser ? 'Personaliza tu identidad deportiva' : 'Acceso oficial a Máxima Potencia'}
+              </p>
             </div>
           </div>
           <button
@@ -190,75 +195,9 @@ export const AuthModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Contenido */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-5">
           {currentUser ? (
-            /* Usuario ya autenticado */
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-3">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center shadow-lg">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
-                    Sesión Verificada
-                  </span>
-                  <h4 className="text-sm font-bold text-white mt-0.5 truncate">{currentUser.email}</h4>
-                  <p className="text-[11px] text-slate-500 font-mono mt-1">UID: {currentUser.uid.slice(0, 12)}...</p>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex flex-col items-center justify-center gap-1">
-                  <div className="flex items-center gap-2">
-                    <Crown className={`w-4 h-4 ${isSuperAdmin || currentCoach?.role === 'head_coach' ? 'text-amber-400' : 'text-blue-400'}`} />
-                    <span>Perfil: <strong>{currentCoach?.name || currentUser.displayName || currentUser.email?.split('@')[0]}</strong></span>
-                  </div>
-                  {isSuperAdmin ? (
-                    <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-0.5">
-                      Super Administrador General
-                    </span>
-                  ) : (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider mt-0.5 border ${
-                      currentCoach?.role === 'head_coach'
-                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                        : currentCoach?.role === 'coach'
-                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                          : currentCoach?.role === 'assistant'
-                            ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-400 border-slate-700'
-                    }`}>
-                      {currentCoach?.role === 'head_coach'
-                        ? 'Head Coach'
-                        : currentCoach?.role === 'coach'
-                          ? 'Entrenador de Cuadrilla'
-                          : currentCoach?.role === 'assistant'
-                            ? 'Asistente Técnico'
-                            : 'Sin rol asignado (Pendiente)'}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Botón de Migración de datos locales si existen */}
-              <button
-                type="button"
-                onClick={async () => {
-                  const ok = await migrateGuestDataToCloud();
-                  if (ok) onClose();
-                }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all active:scale-95"
-              >
-                <Database className="w-4 h-4 text-emerald-400" />
-                <span>Migrar datos locales de invitado a mi cuenta</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-bold transition-all active:scale-95"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Cerrar Sesión</span>
-              </button>
-            </div>
+            <ProfileSuite onClose={onClose} />
           ) : (
             /* Formulario de Login / Registro */
             <div className="space-y-4">

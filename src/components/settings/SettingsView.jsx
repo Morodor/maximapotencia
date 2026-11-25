@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { GoogleIcon } from '../auth/AuthModal';
+import { UserAvatar } from '../common/UserAvatar';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION, reloadWebApp } from '../../utils/updateManager';
 import { getSuiteConfig, saveSuiteConfig, checkSpeedTrackerInstalled, launchSpeedTracker } from '../../utils/suiteLauncher';
 
@@ -66,6 +67,7 @@ export const SettingsView = () => {
     createMyGym,
     registeredGyms = [],
     currentUser,
+    currentUserProfile,
     isSuperAdmin,
     setCurrentPanel,
     setIsAuthModalOpen,
@@ -447,64 +449,110 @@ export const SettingsView = () => {
         </div>
       </div>
 
-      {/* Sección 2: Mi Perfil de Entrenador Activo */}
+      {/* Sección 2: Suite de Perfil de Usuario */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-4 shadow-xl">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <Shield className="w-5 h-5 text-red-500" />
-          <span>Mi Perfil ({currentCoach?.name})</span>
-        </h3>
-        <p className="text-xs text-slate-400">
-          Ajusta tu nombre, cargo visible en la cabecera y PIN numérico de acceso rápido.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-              Nombre
-            </label>
-            <input
-              type="text"
-              value={coachName}
-              onChange={e => setCoachName(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <UserAvatar
+              profile={currentUserProfile || currentCoach}
+              name={currentUserProfile?.displayName || currentCoach?.name}
+              email={currentUser?.email}
+              color={currentUserProfile?.color || currentCoach?.color}
+              size="lg"
+              showCrown={isSuperAdmin || isHeadCoach}
             />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-bold text-white truncate">
+                  {currentUserProfile?.displayName || currentCoach?.name || 'Mi Perfil'}
+                </h3>
+                {(currentUserProfile?.nickname || currentCoach?.nickname) && (
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-amber-300">
+                    @{currentUserProfile?.nickname || currentCoach?.nickname}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 truncate mt-0.5">
+                {currentUserProfile?.title || currentCoach?.title || 'Entrenador'}
+                {(currentUserProfile?.specialty || currentCoach?.specialty)
+                  ? ` • ${currentUserProfile?.specialty || currentCoach?.specialty}`
+                  : ''}
+                {(currentUserProfile?.certification || currentCoach?.certification)
+                  ? ` • ${currentUserProfile?.certification || currentCoach?.certification}`
+                  : ''}
+              </p>
+              {(currentUserProfile?.bio || currentCoach?.bio) && (
+                <p className="text-xs text-slate-500 italic mt-1 line-clamp-1">
+                  “{currentUserProfile?.bio || currentCoach?.bio}”
+                </p>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
-              Descripción / Cargo
-            </label>
-            <input
-              type="text"
-              value={coachTitle}
-              onChange={e => setCoachTitle(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase flex items-center gap-1">
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span>PIN de Acceso (4 dígitos)</span>
-            </label>
-            <input
-              type="password"
-              maxLength={4}
-              value={coachPin}
-              onChange={e => setCoachPin(e.target.value.replace(/\D/g, ''))}
-              placeholder="Sin PIN (acceso libre)"
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
+          {currentUser && (
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95 shrink-0"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Abrir Suite de Perfil</span>
+            </button>
+          )}
         </div>
 
-        <button
-          onClick={handleSaveCurrentCoach}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-colors mt-2"
-        >
-          <Save className="w-4 h-4" />
-          <span>Guardar Mi Perfil</span>
-        </button>
+        {!currentUser && (
+          <div className="space-y-4 pt-2 border-t border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  value={coachName}
+                  onChange={e => setCoachName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                  Descripción / Cargo
+                </label>
+                <input
+                  type="text"
+                  value={coachTitle}
+                  onChange={e => setCoachTitle(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                  <span>PIN de Acceso (4 dígitos)</span>
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={coachPin}
+                  onChange={e => setCoachPin(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Sin PIN (acceso libre)"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveCurrentCoach}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              <span>Guardar Mi Perfil</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sección: Paleta de Color y Personalización Visual */}

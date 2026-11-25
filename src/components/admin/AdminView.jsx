@@ -34,6 +34,7 @@ import {
 import { GROUP_COLORS } from '../athletes/GroupManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
 import { DEFAULT_GYM_ID } from '../../config/firebase';
+import { UserAvatar } from '../common/UserAvatar';
 
 export const AdminView = () => {
   const { 
@@ -345,11 +346,18 @@ export const AdminView = () => {
         uid: u.uid || u.id,
         coachId: matchedCoach?.id || null,
         name: matchedCoach?.name || u.displayName || u.email?.split('@')[0] || 'Usuario',
+        nickname: u.nickname || matchedCoach?.nickname || '',
+        avatarType: u.avatarType || matchedCoach?.avatarType || (u.avatarUrl || u.photoURL ? 'photo' : 'initials'),
+        avatarUrl: u.avatarUrl || matchedCoach?.avatarUrl || '',
+        avatarPreset: u.avatarPreset || matchedCoach?.avatarPreset || '',
+        photoURL: u.photoURL || matchedCoach?.photoURL || '',
+        specialty: u.specialty || matchedCoach?.specialty || '',
+        certification: u.certification || matchedCoach?.certification || '',
         email: u.email || '',
         role: matchedCoach?.role || u.role || 'pending',
         title: matchedCoach?.title || u.title || (u.role === 'pending' ? 'Nuevo Usuario (Sin Rol)' : 'Entrenador'),
         pin: matchedCoach?.pin || '',
-        color: matchedCoach?.color || '#3b82f6',
+        color: u.color || matchedCoach?.color || '#3b82f6',
         assignedGroupIds: matchedCoach?.assignedGroupIds || [],
         canViewAllAthletes: matchedCoach?.canViewAllAthletes ?? false,
         status: matchedCoach?.status || u.status || 'active',
@@ -642,27 +650,32 @@ export const AdminView = () => {
                   <div>
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div 
-                          className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm text-white shrink-0 shadow-md relative"
-                          style={{ backgroundColor: coach.color || '#3b82f6' }}
-                        >
-                          {coach.name ? coach.name.substring(0, 2).toUpperCase() : 'US'}
-                          {isSuper && (
-                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow">
-                              <Crown className="w-3 h-3 fill-slate-950" />
-                            </div>
-                          )}
-                        </div>
+                        <UserAvatar
+                          profile={coach}
+                          name={coach.name}
+                          email={coach.email}
+                          color={coach.color}
+                          size="lg"
+                          showCrown={isSuper}
+                        />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <h4 className="text-sm font-bold text-white truncate">{coach.name}</h4>
+                            {coach.nickname && (
+                              <span className="text-[10px] text-amber-300 font-mono truncate">
+                                @{coach.nickname}
+                              </span>
+                            )}
                             {isCurrent && (
                               <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.2 rounded font-bold">
                                 Tú
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 truncate">{coach.title || 'Usuario'}</p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {coach.title || 'Usuario'}
+                            {coach.specialty ? ` • ${coach.specialty}` : ''}
+                          </p>
                         </div>
                       </div>
 
