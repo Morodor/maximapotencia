@@ -1,15 +1,19 @@
 import React, { useMemo } from 'react';
 import { AlertCircle, SlidersHorizontal } from 'lucide-react';
 
+// Código oficial de colores olímpicos (IWF) con hex explícitos para no ser alterados por el tema de la app
 export const STANDARD_PLATES = [
-  { weight: 25, color: 'bg-red-600 border-red-700 text-white', height: 'h-28', width: 'w-4', label: '25' },
-  { weight: 20, color: 'bg-blue-600 border-blue-700 text-white', height: 'h-28', width: 'w-4', label: '20' },
-  { weight: 15, color: 'bg-amber-500 border-amber-600 text-slate-900', height: 'h-24', width: 'w-3.5', label: '15' },
-  { weight: 10, color: 'bg-emerald-600 border-emerald-700 text-white', height: 'h-20', width: 'w-3', label: '10' },
-  { weight: 5, color: 'bg-slate-200 border-slate-300 text-slate-900', height: 'h-16', width: 'w-2.5', label: '5' },
-  { weight: 2.5, color: 'bg-red-500 border-red-600 text-white', height: 'h-14', width: 'w-2', label: '2.5' },
-  { weight: 1.25, color: 'bg-blue-500 border-blue-600 text-white', height: 'h-12', width: 'w-2', label: '1.25' },
-  { weight: 0.5, color: 'bg-slate-400 border-slate-500 text-slate-900', height: 'h-10', width: 'w-1.5', label: '0.5' },
+  { weight: 25,   bgHex: '#dc2626', borderHex: '#991b1b', textHex: '#ffffff', colorName: 'Rojo',     height: 'h-28', width: 'w-4',   label: '25' },
+  { weight: 20,   bgHex: '#2563eb', borderHex: '#1e40af', textHex: '#ffffff', colorName: 'Azul',     height: 'h-28', width: 'w-4',   label: '20' },
+  { weight: 15,   bgHex: '#eab308', borderHex: '#a16207', textHex: '#0f172a', colorName: 'Amarillo', height: 'h-24', width: 'w-3.5', label: '15' },
+  { weight: 10,   bgHex: '#16a34a', borderHex: '#166534', textHex: '#ffffff', colorName: 'Verde',    height: 'h-20', width: 'w-3',   label: '10' },
+  { weight: 5,    bgHex: '#f8fafc', borderHex: '#cbd5e1', textHex: '#0f172a', colorName: 'Blanco',   height: 'h-16', width: 'w-2.5', label: '5' },
+  { weight: 2.5,  bgHex: '#dc2626', borderHex: '#991b1b', textHex: '#ffffff', colorName: 'Rojo',     height: 'h-14', width: 'w-2.5', label: '2.5' },
+  { weight: 2,    bgHex: '#2563eb', borderHex: '#1e40af', textHex: '#ffffff', colorName: 'Azul',     height: 'h-12', width: 'w-2',   label: '2' },
+  { weight: 1.5,  bgHex: '#eab308', borderHex: '#a16207', textHex: '#0f172a', colorName: 'Amarillo', height: 'h-11', width: 'w-2',   label: '1.5' },
+  { weight: 1.25, bgHex: '#94a3b8', borderHex: '#475569', textHex: '#0f172a', colorName: 'Plata',    height: 'h-11', width: 'w-2',   label: '1.25' },
+  { weight: 1,    bgHex: '#16a34a', borderHex: '#166534', textHex: '#ffffff', colorName: 'Verde',    height: 'h-10', width: 'w-2',   label: '1' },
+  { weight: 0.5,  bgHex: '#f8fafc', borderHex: '#cbd5e1', textHex: '#0f172a', colorName: 'Blanco',   height: 'h-9',  width: 'w-1.5', label: '0.5' },
 ];
 
 export const calculatePlates = (targetWeight, barWeight = 20, userInventory = null) => {
@@ -47,7 +51,7 @@ export const PlateVisualizer = ({
   userInventory = null,
   onOpenInventory = null 
 }) => {
-  const { platesPerSide, weightPerSide, actualTotal, remainder, isShort } = useMemo(
+  const { platesPerSide, actualTotal, remainder, isShort } = useMemo(
     () => calculatePlates(targetWeight, barWeight, userInventory),
     [targetWeight, barWeight, userInventory]
   );
@@ -84,10 +88,10 @@ export const PlateVisualizer = ({
       {/* Visual Bar Sleeve Graphic */}
       <div className="relative py-8 px-4 bg-slate-950/80 rounded-xl border border-slate-800/80 flex items-center justify-center overflow-x-auto min-h-[140px]">
         {/* Shaft (center bar) */}
-        <div className="w-16 h-4 bg-gradient-to-r from-slate-600 via-slate-400 to-slate-500 rounded-l shadow-inner" />
+        <div className="w-16 h-4 bg-gradient-to-r from-slate-600 via-slate-400 to-slate-500 rounded-l shadow-inner shrink-0" />
 
         {/* Collar Inner Stopper */}
-        <div className="w-3 h-16 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-500 rounded-sm shadow-md z-10" />
+        <div className="w-3 h-16 bg-gradient-to-b from-slate-400 via-slate-200 to-slate-500 rounded-sm shadow-md z-10 shrink-0" />
 
         {/* Sleeve (loading pin) */}
         <div className="relative flex items-center h-7 bg-gradient-to-b from-slate-400 via-slate-300 to-slate-500 rounded-r min-w-[140px] pl-1 pr-4 shadow-inner">
@@ -96,8 +100,13 @@ export const PlateVisualizer = ({
             {platesPerSide.map((p, idx) => (
               <div
                 key={idx}
-                className={`${p.color} ${p.height} ${p.width} rounded-sm border flex items-center justify-center shadow-lg transition-all transform hover:scale-110 cursor-pointer`}
-                title={`${p.weight} kg`}
+                className={`${p.height} ${p.width} rounded-sm border flex items-center justify-center shadow-lg transition-all transform hover:scale-110 cursor-pointer shrink-0`}
+                style={{
+                  backgroundColor: p.bgHex,
+                  borderColor: p.borderHex,
+                  color: p.textHex
+                }}
+                title={`${p.weight} kg (${p.colorName})`}
               >
                 <span className="text-[9px] font-black tracking-tighter transform -rotate-90 select-none">
                   {p.label}
@@ -106,7 +115,7 @@ export const PlateVisualizer = ({
             ))}
             {/* Collar Lock */}
             {platesPerSide.length > 0 && (
-              <div className="w-2.5 h-10 bg-amber-400 border border-amber-600 rounded-sm shadow z-20" title="Collarín (traba)" />
+              <div className="w-2.5 h-10 bg-amber-400 border border-amber-600 rounded-sm shadow z-20 shrink-0" title="Collarín (traba)" />
             )}
           </div>
         </div>
@@ -143,7 +152,10 @@ export const PlateVisualizer = ({
                 key={p.weight}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200"
               >
-                <span className={`w-2.5 h-2.5 rounded-full ${p.color}`} />
+                <span
+                  className="w-2.5 h-2.5 rounded-full border shrink-0"
+                  style={{ backgroundColor: p.bgHex, borderColor: p.borderHex }}
+                />
                 <span>{count}x {p.weight}kg</span>
                 <span className="text-slate-400 font-mono text-[11px]">({count * 2} tot)</span>
               </span>

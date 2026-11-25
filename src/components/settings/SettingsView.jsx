@@ -62,6 +62,8 @@ export const SettingsView = () => {
     activeGymId,
     switchGym,
     resetDefaultGym,
+    createMyGym,
+    registeredGyms = [],
     currentUser,
     isSuperAdmin,
     setCurrentPanel,
@@ -73,6 +75,9 @@ export const SettingsView = () => {
   } = useApp();
 
   const [inputGymId, setInputGymId] = useState(activeGymId || '');
+  const [showNewGymForm, setShowNewGymForm] = useState(false);
+  const [newGymName, setNewGymName] = useState('');
+  const [newGymDesc, setNewGymDesc] = useState('');
 
   useEffect(() => {
     setInputGymId(activeGymId || '');
@@ -1046,17 +1051,110 @@ export const SettingsView = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-white">Espacio de Trabajo / Gimnasio</h3>
+                <h3 className="text-xl font-bold text-white">Mis Gimnasios & Grupos</h3>
                 <span className="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold px-2 py-0.5 rounded-full">
                   Multi-Club
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Cada gimnasio cuenta con su propia base de datos aislada e independiente en la nube.
+                Crea tu propio gimnasio o cambia de sede para administrar tus propios atletas y cuadrillas de trabajo.
               </p>
             </div>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => setShowNewGymForm(!showNewGymForm)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition-all active:scale-95"
+              >
+                <span>{showNewGymForm ? 'Cerrar' : '+ Crear Nuevo Gimnasio'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setCurrentPanel('athletes')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all"
+            >
+              <Users className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Ir a Grupos / Atletas</span>
+            </button>
+          </div>
         </div>
+
+        {/* Formulario para que cualquier entrenador cree su propio gimnasio */}
+        {showNewGymForm && (
+          <div className="p-4 rounded-xl bg-slate-950 border border-blue-500/40 space-y-3 animate-in fade-in">
+            <h4 className="text-xs font-bold text-blue-300 uppercase">Crear Mi Propio Gimnasio / Sede</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={newGymName}
+                onChange={e => setNewGymName(e.target.value)}
+                placeholder="Nombre del gimnasio (Ej. Box Fuerza Sur)"
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                value={newGymDesc}
+                onChange={e => setNewGymDesc(e.target.value)}
+                placeholder="Ciudad o descripción (Opcional)"
+                className="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewGymForm(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!newGymName.trim()) return;
+                  const id = await createMyGym({ name: newGymName, description: newGymDesc });
+                  if (id) {
+                    setNewGymName('');
+                    setNewGymDesc('');
+                    setShowNewGymForm(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow"
+              >
+                Crear y Entrar al Gimnasio
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Selector rápido de gimnasios propios / disponibles */}
+        {registeredGyms.filter(g => isSuperAdmin || g.isDefault || g.id === activeGymId || g.ownerUid === currentUser?.uid).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {registeredGyms
+              .filter(g => isSuperAdmin || g.isDefault || g.id === activeGymId || g.ownerUid === currentUser?.uid)
+              .map(g => {
+                const isAct = activeGymId === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => switchGym(g.id)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
+                      isAct
+                        ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>{g.name}</span>
+                  </button>
+                );
+              })}
+          </div>
+        )}
 
         <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
           <div>
@@ -1084,7 +1182,7 @@ export const SettingsView = () => {
               </button>
             </div>
             <span className="text-[11px] text-slate-500 mt-1 block">
-              Gimnasio actual: {activeGymId === 'oXaFQadDDaLQbTO0k9dL' ? 'Gimnasio Principal (Máxima Potencia)' : activeGymId}
+              Gimnasio actual: {registeredGyms.find(g => g.id === activeGymId)?.name || (activeGymId === 'oXaFQadDDaLQbTO0k9dL' ? 'Gimnasio Principal (Máxima Potencia)' : activeGymId)}
             </span>
           </div>
 

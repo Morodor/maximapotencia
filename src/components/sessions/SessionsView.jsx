@@ -158,11 +158,16 @@ export const SessionsView = () => {
 
                   {s.blocks && s.blocks.length > 0 && (
                     <div className="space-y-1.5 bg-slate-800/50 p-2.5 rounded-xl border border-slate-700/40">
-                      {s.blocks.slice(0, 3).map((b, idx) => (
-                        <p key={idx} className="text-xs text-slate-300 font-medium truncate">
-                          • {Array.isArray(b.exercises) ? b.exercises.join(' + ') : b.exercises}
-                        </p>
-                      ))}
+                      {s.blocks.slice(0, 3).map((b, idx) => {
+                        const exNames = (Array.isArray(b?.exercises) ? b.exercises : (b?.exercises ? [b.exercises] : []))
+                          .map(ex => typeof ex === 'string' ? ex : (ex?.name || ex?.exercise || ex?.title || ''))
+                          .filter(Boolean);
+                        return (
+                          <p key={idx} className="text-xs text-slate-300 font-medium truncate">
+                            • {exNames.length > 0 ? exNames.join(' + ') : 'Bloque vacío'}
+                          </p>
+                        );
+                      })}
                       {s.blocks.length > 3 && (
                         <p className="text-[11px] text-slate-500 italic">
                           +{s.blocks.length - 3} bloques más...

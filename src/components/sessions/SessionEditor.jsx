@@ -14,6 +14,20 @@ import {
   Layers 
 } from 'lucide-react';
 
+const normalizeExerciseName = (ex) => {
+  if (!ex) return '';
+  if (typeof ex === 'string') return ex;
+  if (typeof ex === 'object') {
+    return ex.name || ex.exercise || ex.title || ex.label || '';
+  }
+  return String(ex);
+};
+
+const normalizeBlockExercises = (rawExercises) => {
+  const arr = Array.isArray(rawExercises) ? rawExercises : (rawExercises ? [rawExercises] : []);
+  return arr.map(normalizeExerciseName).filter(Boolean);
+};
+
 export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
   const { athletes, groups, exercises, addSession, updateSession } = useApp();
   const isEditing = Boolean(sessionToEdit);
@@ -40,15 +54,15 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
   const [sessionBlocks, setSessionBlocks] = useState(() => {
     if (sessionToEdit?.blocks && Array.isArray(sessionToEdit.blocks)) {
       return sessionToEdit.blocks.map((b, i) => ({
-        id: b.id || (Date.now() + i),
-        exercises: Array.isArray(b.exercises) ? [...b.exercises] : [b.exercises].filter(Boolean),
-        notes: b.notes || ''
+        id: b?.id || (Date.now() + i),
+        exercises: normalizeBlockExercises(b?.exercises),
+        notes: typeof b?.notes === 'string' ? b.notes : ''
       }));
     }
     if (sessionToEdit?.exercises && Array.isArray(sessionToEdit.exercises)) {
       return [{
         id: Date.now(),
-        exercises: [...sessionToEdit.exercises],
+        exercises: normalizeBlockExercises(sessionToEdit.exercises),
         notes: ''
       }];
     }
@@ -86,9 +100,10 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
 
   // Carga un bloque existente en el formulario para editarlo
   const startEditingBlock = (block) => {
+    if (!block) return;
     setEditingBlockId(block.id);
-    setCurrentBlockExercises([...block.exercises]);
-    setSessionNotes(block.notes || '');
+    setCurrentBlockExercises(normalizeBlockExercises(block.exercises));
+    setSessionNotes(typeof block.notes === 'string' ? block.notes : '');
   };
 
   const cancelEditingBlock = () => {
@@ -472,7 +487,9 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
                         )}
                       </div>
                       <p className="text-sm font-semibold text-white break-words">
-                        {Array.isArray(b.exercises) ? b.exercises.join(' + ') : b.exercises}
+                        {normalizeBlockExercises(b.exercises).length > 0
+                          ? normalizeBlockExercises(b.exercises).join(' + ')
+                          : <span className="text-slate-500 italic">Bloque sin ejercicios (toca editar o eliminar)</span>}
                       </p>
                       {b.notes && (
                         <p className="text-xs text-slate-400 mt-1 break-words italic">

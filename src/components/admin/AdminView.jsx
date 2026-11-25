@@ -28,7 +28,8 @@ import {
   Calendar,
   Lock,
   Mail,
-  UserCheck
+  UserCheck,
+  Building2
 } from 'lucide-react';
 import { GROUP_COLORS } from '../athletes/GroupManagementModal';
 import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
@@ -54,6 +55,7 @@ export const AdminView = () => {
     deleteCoach, 
     assignUserRoleAndGym,
     createOrUpdateGym,
+    createMyGym,
     deleteRegisteredUser,
     publishAppUpdate, 
     appUpdateInfo, 
@@ -88,6 +90,11 @@ export const AdminView = () => {
   const [canViewAllAthletes, setCanViewAllAthletes] = useState(false);
   const [status, setStatus] = useState('active'); // 'active' | 'suspended'
   const [userToDelete, setUserToDelete] = useState(null);
+
+  // Estado Tab Gimnasios
+  const [showCreateGymForm, setShowCreateGymForm] = useState(false);
+  const [gymFormName, setGymFormName] = useState('');
+  const [gymFormDesc, setGymFormDesc] = useState('');
 
   // ==================== ESTADO TAB 2: VERSIONES ====================
   const [releaseVersion, setReleaseVersion] = useState(CURRENT_APP_VERSION);
@@ -354,7 +361,12 @@ export const AdminView = () => {
     });
 
     // 2. Añadir coaches manuales del gimnasio activo que no estén aún en registeredUsers
+    const hasBayronInMap = Array.from(map.values()).some(u => u.email?.toLowerCase().includes('bayron.quezada'));
     coaches.forEach(c => {
+      // Evitar tarjeta duplicada de ficha legacy "Bayron Quezada" sin correo cuando ya existe el Super Admin autenticado
+      if (!c.email && hasBayronInMap && c.name?.toLowerCase().includes('bayron')) {
+        return;
+      }
       const key = (c.email || c.id).toLowerCase().trim();
       if (!map.has(key)) {
         map.set(key, {
@@ -413,7 +425,7 @@ export const AdminView = () => {
                   Super Admin Console
                 </span>
                 <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700/60">
-                  v{currentAppVersion || '2.4.0'} Pro
+                  v{currentAppVersion || '2.5.0'} Pro
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -446,12 +458,24 @@ export const AdminView = () => {
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Usuarios & Gimnasios ({unifiedUsers.length})</span>
+            <span>Usuarios & Roles ({unifiedUsers.length})</span>
             {pendingCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse">
                 {pendingCount} nuevos
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('gyms')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'gyms'
+                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-950/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Gimnasios & Sedes ({Math.max(1, registeredGyms.length)})</span>
           </button>
 
           <button
@@ -500,6 +524,30 @@ export const AdminView = () => {
       {/* ========================================================= */}
       {activeTab === 'users' && (
         <div className="space-y-4 animate-in fade-in">
+          {/* Resumen Rápido de Usuarios */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Usuarios</span>
+              <span className="text-lg font-black text-white font-mono">{unifiedUsers.length}</span>
+            </div>
+            <div className={`border rounded-2xl p-3 ${pendingCount > 0 ? 'bg-amber-950/25 border-amber-500/40' : 'bg-slate-900/90 border-slate-800'}`}>
+              <span className="text-[10px] uppercase font-bold text-amber-400 block">Sin Rol / Nuevos</span>
+              <span className="text-lg font-black text-amber-300 font-mono">{pendingCount}</span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+              <span className="text-[10px] uppercase font-bold text-red-400 block">Head Coaches</span>
+              <span className="text-lg font-black text-white font-mono">
+                {unifiedUsers.filter(u => u.role === 'head_coach' || u.role === 'super_admin').length}
+              </span>
+            </div>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3">
+              <span className="text-[10px] uppercase font-bold text-emerald-400 block">Entrenadores</span>
+              <span className="text-lg font-black text-white font-mono">
+                {unifiedUsers.filter(u => u.role === 'coach' || u.role === 'assistant').length}
+              </span>
+            </div>
+          </div>
+
           {/* Selector de Gimnasio Activo para Supervisión */}
           <div className="bg-slate-900/90 border border-amber-500/20 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -565,13 +613,10 @@ export const AdminView = () => {
               </select>
             </div>
 
-            <button
-              onClick={handleOpenCreateUser}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Entrenador / Usuario</span>
-            </button>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-400 shrink-0">
+              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Los usuarios aparecen automáticamente al iniciar sesión con Google</span>
+            </div>
           </div>
 
           {/* Directorio de Usuarios */}
@@ -681,10 +726,11 @@ export const AdminView = () => {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleOpenEditUser(coach)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                        title="Editar permisos y perfil"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-amber-200 text-[11px] font-bold transition-colors"
+                        title="Asignar rol, gimnasio y cuadrillas"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Asignar Rol / Gym</span>
                       </button>
 
                       {!isSuper && (
@@ -697,6 +743,147 @@ export const AdminView = () => {
                         </button>
                       )}
                     </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 1B: GESTIÓN DE GIMNASIOS & SEDES                      */}
+      {/* ========================================================= */}
+      {activeTab === 'gyms' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-amber-400" />
+                <span>Gimnasios & Sedes Registradas</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Cada gimnasio tiene su propia base de atletas, grupos/cuadrillas, sesiones y registros aislados.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreateGymForm(!showCreateGymForm)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{showCreateGymForm ? 'Cerrar Formulario' : 'Crear Nuevo Gimnasio'}</span>
+            </button>
+          </div>
+
+          {showCreateGymForm && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!gymFormName.trim()) return;
+                const okId = await createMyGym({ name: gymFormName.trim(), description: gymFormDesc.trim() });
+                if (okId) {
+                  setGymFormName('');
+                  setGymFormDesc('');
+                  setShowCreateGymForm(false);
+                }
+              }}
+              className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 space-y-3 animate-in fade-in"
+            >
+              <h4 className="text-sm font-bold text-amber-300">Nuevo Gimnasio / Club</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Nombre del Gimnasio</label>
+                  <input
+                    type="text"
+                    required
+                    value={gymFormName}
+                    onChange={(e) => setGymFormName(e.target.value)}
+                    placeholder="Ej. Club Halterofilia Norte"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Descripción / Ciudad (Opcional)</label>
+                  <input
+                    type="text"
+                    value={gymFormDesc}
+                    onChange={(e) => setGymFormDesc(e.target.value)}
+                    placeholder="Ej. Sede Santiago Centro"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGymForm(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow"
+                >
+                  Crear y Abrir Gimnasio
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(registeredGyms.length > 0 ? registeredGyms : [{ id: DEFAULT_GYM_ID, name: 'Gimnasio Principal (Máxima Potencia)', isDefault: true }]).map((gym) => {
+              const isActive = activeGymId === gym.id;
+              const gymUsersCount = unifiedUsers.filter(u => u.assignedGymId === gym.id).length;
+              return (
+                <div
+                  key={gym.id}
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                    isActive
+                      ? 'bg-gradient-to-br from-slate-900 to-amber-950/20 border-amber-500/50 shadow-lg'
+                      : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">{gym.name}</h4>
+                        <p className="text-[11px] font-mono text-slate-500 mt-0.5">ID: {gym.id}</p>
+                      </div>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                        isActive
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}>
+                        {isActive ? 'Activo ahora' : gym.isDefault ? 'Principal' : 'Sede'}
+                      </span>
+                    </div>
+                    {gym.description && <p className="text-xs text-slate-400">{gym.description}</p>}
+                    <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-1">
+                      <span>👥 {gymUsersCount} usuario(s) asignado(s)</span>
+                      {gym.ownerEmail && <span className="truncate font-mono">Admin: {gym.ownerEmail}</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-800">
+                    {!isActive ? (
+                      <button
+                        type="button"
+                        onClick={() => switchGym(gym.id)}
+                        className="flex-1 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-all"
+                      >
+                        Abrir / Supervisar Gimnasio
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPanel('athletes')}
+                        className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all"
+                      >
+                        Gestionar Atletas y Grupos
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -735,7 +922,7 @@ export const AdminView = () => {
                     required
                     value={releaseVersion}
                     onChange={(e) => setReleaseVersion(e.target.value)}
-                    placeholder="2.4.0"
+                    placeholder="2.5.0"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">
@@ -1012,9 +1199,9 @@ export const AdminView = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {editingCoachId ? 'Editar Usuario / Permisos' : 'Añadir Nuevo Usuario'}
+                    Asignar Rol y Gimnasio
                   </h3>
-                  <p className="text-xs text-slate-400">Asignación de roles y control de acceso</p>
+                  <p className="text-xs text-slate-400">Permisos del usuario autenticado</p>
                 </div>
               </div>
               <button
@@ -1026,31 +1213,20 @@ export const AdminView = () => {
             </div>
 
             <form onSubmit={handleSaveUser} className="p-6 overflow-y-auto space-y-4 custom-scrollbar">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">Nombre Completo</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ej. Rodrigo Tapia"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 uppercase mb-1">
-                  Correo Electrónico (Para Vincular con Google Login)
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="entrenador@gmail.com"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Cuando este usuario inicie sesión con Google, se le asignarán estos permisos automáticamente.
+              {/* Tarjeta de Identidad del Usuario Logueado (Solo Lectura) */}
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm text-white shrink-0 shadow"
+                  style={{ backgroundColor: color || '#3b82f6' }}
+                >
+                  {name ? name.substring(0, 2).toUpperCase() : 'US'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-white truncate">{name || 'Usuario'}</p>
+                  <p className="text-xs font-mono text-slate-400 truncate">{email || 'Sin correo'}</p>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                  Verificado
                 </span>
               </div>
 

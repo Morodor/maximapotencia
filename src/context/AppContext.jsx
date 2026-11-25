@@ -1671,39 +1671,66 @@ export const AppProvider = ({ children }) => {
     SUPER_ADMIN_EMAILS.includes(currentUser.email.toLowerCase().trim())
   );
 
-  // Suscripción global para Super Admin: todos los usuarios registrados y gimnasios
+  // Suscripción global: directorio de gimnasios (para usuarios autenticados) y usuarios (para Super Admin)
   useEffect(() => {
-    if (!isSuperAdmin) {
+    if (!currentUser) {
       setRegisteredUsers([]);
       setRegisteredGyms([]);
       return;
     }
 
-    const unsubUsers = onSnapshot(registeredUsersRef, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setRegisteredUsers(list);
-    }, (err) => console.warn('Aviso al cargar directorio de usuarios:', err));
-
     const unsubGyms = onSnapshot(registeredGymsRef, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setRegisteredGyms(list);
 
-      // Asegurar que el Gimnasio Principal esté registrado en el directorio
-      if (!list.some(g => g.id === DEFAULT_GYM_ID)) {
+      if (isSuperAdmin && !list.some(g => g.id === DEFAULT_GYM_ID)) {
         setDoc(doc(registeredGymsRef, DEFAULT_GYM_ID), {
           id: DEFAULT_GYM_ID,
           name: 'Gimnasio Principal (Máxima Potencia)',
           isDefault: true,
+          ownerEmail: 'bayron.quezada@gmail.com',
           createdAt: serverTimestamp()
         }, { merge: true }).catch(() => {});
       }
     }, (err) => console.warn('Aviso al cargar directorio de gimnasios:', err));
 
+    let unsubUsers = null;
+    if (isSuperAdmin) {
+      unsubUsers = onSnapshot(registeredUsersRef, (snap) => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setRegisteredUsers(list);
+      }, (err) => console.warn('Aviso al cargar directorio de usuarios:', err));
+    } else {
+      setRegisteredUsers([]);
+    }
+
     return () => {
-      unsubUsers();
+      if (unsubUsers) unsubUsers();
       unsubGyms();
     };
-  }, [isSuperAdmin]);
+  }, [currentUser, isSuperAdmin]);
+
+  // Auto-vincular ficha legacy de Bayron Quezada sin correo cuando inicia sesión el Super Admin
+  useEffect(() => {
+    if (!isSuperAdmin || !currentUser || coaches.length === 0) return;
+    const myEmail = currentUser.email.toLowerCase().trim();
+    const legacyBayron = coaches.find(
+      c => !c.email && (c.name?.toLowerCase().includes('bayron') || c.role === 'head_coach')
+    );
+    const alreadyLinked = coaches.some(c => c.email?.toLowerCase().trim() === myEmail);
+
+    if (legacyBayron && !alreadyLinked && activeGymId === DEFAULT_GYM_ID) {
+      updateDoc(doc(getGymRefs(activeGymId).coachesRef, legacyBayron.id), {
+        uid: currentUser.uid,
+        email: myEmail,
+        name: currentUser.displayName || legacyBayron.name || 'Bayron Quezada',
+        role: 'super_admin',
+        title: 'Super Admin & Creador',
+        canViewAllAthletes: true,
+        updatedAt: serverTimestamp()
+      }).catch(() => {});
+    }
+  }, [isSuperAdmin, currentUser, coaches, activeGymId]);
 
   // Entrenador Activo y Permisos (Aislado por cuenta autenticada, nunca hereda Bayron Quezada a otros usuarios)
   const matchedCoachByUser = currentUser
@@ -2027,6 +2054,8 @@ export const AppProvider = ({ children }) => {
         id: cleanId,
         name: name.trim() || cleanId,
         description: description.trim(),
+        ownerUid: currentUser?.uid || '',
+        ownerEmail: currentUser?.email?.toLowerCase() || '',
         updatedAt: serverTimestamp()
       }, { merge: true });
       showNotification(`Gimnasio "${name || cleanId}" guardado correctamente.`);
@@ -2034,6 +2063,56 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.error('Error guardando gimnasio:', e);
       showNotification('Error al guardar gimnasio: ' + e.message, true);
+      return false;
+    }
+  };
+
+  // Crear un nuevo gimnasio propio para cualquier entrenador autenticado y activarlo
+  const createMyGym = async ({ name, description = '' }) => {
+    if (!currentUser) {
+      showNotification('Debes iniciar sesión para crear un gimnasio en la nube.', true);
+      setIsAuthModalOpen(true);
+      return false;
+    }
+    try {
+      const cleanName = name.trim();
+      if (!cleanName) return false;
+      const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24);
+      const gymId = `${slug || 'gym'}_${Date.now().toString(36)}`;
+
+      await setDoc(doc(registeredGymsRef, gymId), {
+        id: gymId,
+        name: cleanName,
+        description: description.trim(),
+        ownerUid: currentUser.uid,
+        ownerEmail: currentUser.email?.toLowerCase() || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      // Registrar al creador como Head Coach de su nuevo gimnasio
+      const newGymCoachesRef = getGymRefs(gymId).coachesRef;
+      await addDoc(newGymCoachesRef, {
+        uid: currentUser.uid,
+        email: currentUser.email?.toLowerCase() || '',
+        name: currentUser.displayName || currentUser.email?.split('@')[0] || 'Head Coach',
+        role: isSuperAdmin ? 'super_admin' : 'head_coach',
+        title: 'Fundador & Head Coach',
+        pin: '',
+        color: '#ef4444',
+        assignedGroupIds: [],
+        canViewAllAthletes: true,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      switchGym(gymId);
+      showNotification(`¡Gimnasio "${cleanName}" creado! Ahora estás operando dentro de él.`);
+      return gymId;
+    } catch (e) {
+      console.error('Error creando gimnasio:', e);
+      showNotification('Error al crear gimnasio: ' + e.message, true);
       return false;
     }
   };
@@ -2126,6 +2205,7 @@ export const AppProvider = ({ children }) => {
       registeredGyms,
       assignUserRoleAndGym,
       createOrUpdateGym,
+      createMyGym,
       deleteRegisteredUser,
       isAuthModalOpen,
       setIsAuthModalOpen,

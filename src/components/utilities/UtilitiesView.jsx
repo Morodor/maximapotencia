@@ -14,13 +14,13 @@ export const UtilitiesView = () => {
   const [targetWeight, setTargetWeight] = useState('100');
   const [discResult, setDiscResult] = useState([]);
 
-  // Inventario de discos del usuario (guardado en LocalStorage)
+  // Inventario de discos del usuario (guardado exclusivamente en LocalStorage del teléfono)
   const [userInventory, setUserInventory] = useState(() => {
     try {
       const saved = localStorage.getItem('mp_plate_inventory');
-      return saved ? JSON.parse(saved) : DEFAULT_PLATE_INVENTORIES.unlimited;
+      return saved ? JSON.parse(saved) : DEFAULT_PLATE_INVENTORIES.custom_default;
     } catch {
-      return DEFAULT_PLATE_INVENTORIES.unlimited;
+      return DEFAULT_PLATE_INVENTORIES.custom_default;
     }
   });
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
