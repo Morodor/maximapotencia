@@ -35,7 +35,7 @@ export const Header = () => {
 
   return (
     <>
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-4 border-b border-slate-800/80">
+      <header className="no-print flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-4 border-b border-slate-800/80">
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

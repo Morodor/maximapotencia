@@ -57,7 +57,14 @@ export const PRShareCardModal = ({ isOpen, onClose, prData }) => {
       backgroundColor: '#090d16',
       useCORS: true,
       allowTaint: true,
-      logging: false
+      logging: false,
+      onclone: (clonedDoc) => {
+        clonedDoc.querySelectorAll('style').forEach((styleTag) => {
+          if (styleTag.textContent && styleTag.textContent.includes('oklch(')) {
+            styleTag.textContent = styleTag.textContent.replace(/oklch\([^)]+\)/g, '#334155');
+          }
+        });
+      }
     });
   };
 

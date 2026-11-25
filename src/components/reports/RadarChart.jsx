@@ -58,12 +58,12 @@ export const RadarChart = ({
   const pointFill = isDark ? '#f87171' : '#b91c1c';
 
   return (
-    <div className="flex flex-col items-center justify-center select-none">
+    <div className="flex flex-col items-center justify-center select-none w-full">
       <svg 
         width={size} 
         height={size} 
-        viewBox={`0 0 ${size} ${size}`}
-        className="overflow-visible"
+        viewBox={`-56 -20 ${size + 112} ${size + 40}`}
+        className="w-full max-w-[320px] h-auto overflow-visible"
       >
         <defs>
           <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
@@ -151,6 +151,7 @@ export const RadarChart = ({
                 y={labelCoord.y - 4}
                 textAnchor={textAnchor}
                 fill={textColor}
+                style={{ fill: textColor }}
                 fontSize="11"
                 fontWeight="700"
                 className="font-sans"
@@ -162,6 +163,7 @@ export const RadarChart = ({
                 y={labelCoord.y + 10}
                 textAnchor={textAnchor}
                 fill={subtextColor}
+                style={{ fill: subtextColor }}
                 fontSize="10"
                 fontWeight="600"
                 className="font-mono"

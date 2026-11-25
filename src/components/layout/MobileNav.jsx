@@ -28,7 +28,7 @@ export const MobileNav = () => {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+    <div className="no-print lg:hidden fixed bottom-0 left-0 right-0 z-50">
       {/* Backdrop oscuro con blur */}
       {isOpen && (
         <div 

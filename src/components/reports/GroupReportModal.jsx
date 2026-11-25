@@ -1,7 +1,7 @@
 // src/components/reports/GroupReportModal.jsx
 import React, { useState, useRef, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { exportElementToPdf } from '../../utils/pdfGenerator';
+import { generateGroupPdfReport } from '../../utils/pdfGenerator';
 import { generateGroupWhatsAppReport, openWhatsApp } from '../../utils/whatsappFormatter';
 import { 
   X, 
@@ -21,10 +21,10 @@ import {
 } from 'lucide-react';
 
 export const GroupReportModal = ({ group, isOpen, onClose }) => {
-  const { athletes, rmRecords, powerRecords, coaches, currentCoach } = useApp();
+  const { athletes, rmRecords, powerRecords, coaches, currentCoach, showNotification, activeGymId, registeredGyms, profile } = useApp();
   const reportRef = useRef(null);
 
-  const [pdfTheme, setPdfTheme] = useState('dark');
+  const [pdfTheme, setPdfTheme] = useState('light');
   const [isExporting, setIsExporting] = useState(false);
 
   // Filtrar atletas miembros de esta cuadrilla
@@ -144,20 +144,25 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
   // Renderizado condicional DESPUÉS de todos los hooks (evita React error #310)
   if (!isOpen || !group) return null;
 
-  // Manejador descarga PDF
+  const activeGymObj = registeredGyms?.find(g => g.id === activeGymId);
+  const gymName = activeGymObj?.name || profile?.gymName || 'Máxima Potencia Club';
+
+  // Manejador descarga directa PDF Cuadrilla (A4 Vectorial)
   const handleDownloadPdf = async () => {
-    if (!reportRef.current) return;
     setIsExporting(true);
     try {
-      const sanitizedName = (group.name || 'cuadrilla').toLowerCase().replace(/\s+/g, '_');
-      const filename = `informe_cuadrilla_${sanitizedName}_maxima_potencia.pdf`;
-      const bg = pdfTheme === 'dark' ? '#0b0f19' : '#ffffff';
-      await exportElementToPdf(reportRef.current, filename, {
-        backgroundColor: bg,
-        quality: 2
+      await generateGroupPdfReport({
+        group,
+        groupAthletes,
+        assignedCoach,
+        gymName,
+        stats,
+        theme: pdfTheme
       });
+      showNotification?.('Informe PDF de cuadrilla descargado.');
     } catch (err) {
       console.error(err);
+      showNotification?.('Error al generar el PDF de cuadrilla.', true);
     } finally {
       setIsExporting(false);
     }
@@ -176,12 +181,36 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
 
   const isDark = pdfTheme === 'dark';
 
+  const paperColors = isDark
+    ? {
+        bg: '#0b0f19',
+        cardBg: '#121928',
+        altBg: '#182134',
+        border: '#243047',
+        text: '#f8fafc',
+        muted: '#94a3b8',
+        accent: '#f87171',
+        amber: '#fbbf24',
+        emerald: '#34d399'
+      }
+    : {
+        bg: '#ffffff',
+        cardBg: '#f8fafc',
+        altBg: '#e2e8f0',
+        border: '#cbd5e1',
+        text: '#0f172a',
+        muted: '#475569',
+        accent: '#dc2626',
+        amber: '#d97706',
+        emerald: '#059669'
+      };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl shadow-2xl relative my-auto max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="printable-modal-root fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="printable-modal-card bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl shadow-2xl relative my-auto max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* Barra Superior */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-slate-950/80 border-b border-slate-800 shrink-0">
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 px-6 py-4 bg-slate-950/80 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-500" />
             <h3 className="text-base sm:text-lg font-black text-white">
@@ -192,6 +221,7 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs">
               <button
+                type="button"
                 onClick={() => setPdfTheme('dark')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
                   isDark ? 'bg-red-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
@@ -201,10 +231,12 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
                 <span className="hidden sm:inline">Oscuro</span>
               </button>
               <button
+                type="button"
                 onClick={() => setPdfTheme('light')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  !isDark ? 'bg-slate-200 text-slate-900 shadow-xs' : 'text-slate-400 hover:text-white'
+                  !isDark ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
+                style={!isDark ? { backgroundColor: '#ffffff', color: '#0f172a' } : undefined}
               >
                 <Sun className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Blanco</span>
@@ -212,6 +244,7 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors"
             >
@@ -221,8 +254,9 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
         </div>
 
         {/* Acciones */}
-        <div className="bg-slate-900/90 border-b border-slate-800/80 px-6 py-3 flex items-center justify-between gap-3 shrink-0">
+        <div className="no-print bg-slate-900/90 border-b border-slate-800/80 px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <button
+            type="button"
             onClick={handleSendWhatsApp}
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md shadow-emerald-950/40 transition-all"
           >
@@ -232,6 +266,7 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleDownloadPdf}
               disabled={isExporting}
               className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-red-950/40 transition-all"
@@ -241,6 +276,7 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
             </button>
 
             <button
+              type="button"
               onClick={() => window.print()}
               className="hidden sm:flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-3 py-2 rounded-xl transition-all"
             >
@@ -250,48 +286,48 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
         </div>
 
         {/* Contenedor Imprimible */}
-        <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-950/40">
+        <div className="printable-scroll-wrap p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-950/40">
           <div
             ref={reportRef}
-            className={`w-full max-w-[800px] mx-auto p-6 sm:p-8 rounded-2xl border transition-all ${
-              isDark 
-                ? 'bg-[#0b0f19] text-white border-slate-800 shadow-2xl' 
-                : 'bg-white text-slate-900 border-slate-300 shadow-md'
-            }`}
-            style={{ minHeight: '1000px' }}
+            className="printable-report-sheet w-full max-w-[800px] mx-auto p-6 sm:p-8 rounded-2xl border shadow-2xl transition-colors"
+            style={{
+              minHeight: '1000px',
+              backgroundColor: paperColors.bg,
+              color: paperColors.text,
+              borderColor: paperColors.border
+            }}
           >
             {/* Cabecera */}
-            <div className={`pb-6 border-b flex flex-col sm:flex-row items-center justify-between gap-4 ${
-              isDark ? 'border-slate-800' : 'border-slate-200'
-            }`}>
+            <div className="pb-6 border-b flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: paperColors.border }}>
               <div className="flex items-center gap-4 text-center sm:text-left">
                 <div 
                   className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl text-white shadow-lg shrink-0"
-                  style={{ backgroundColor: group.color || '#ef4444' }}
+                  style={{ backgroundColor: group.color || '#ef4444', color: '#ffffff' }}
                 >
                   {(group.name || 'G').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight" style={{ color: paperColors.text }}>
                     CUADRILLA: {group.name}
                   </h1>
-                  <p className={`text-xs font-semibold tracking-wider uppercase ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                    Informe Colectivo de Rendimiento & Progresión
+                  <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: paperColors.accent }}>
+                    Informe Colectivo de Rendimiento • {gymName}
                   </p>
                 </div>
               </div>
 
               <div className="text-center sm:text-right text-xs space-y-1">
-                <span className={`inline-block font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                  isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
-                }`}>
+                <span
+                  className="inline-block font-mono font-bold px-2.5 py-0.5 rounded-full border"
+                  style={{ backgroundColor: paperColors.altBg, borderColor: paperColors.border, color: paperColors.text }}
+                >
                   {groupAthletes.length} Atletas Registrados
                 </span>
-                <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>
-                  Coach: <strong>{assignedCoach?.name || 'Bayron Quezada'}</strong>
+                <p style={{ color: paperColors.muted }}>
+                  Coach: <strong style={{ color: paperColors.text }}>{assignedCoach?.name || 'Bayron Quezada'}</strong>
                 </p>
                 {group.schedule && (
-                  <p className={isDark ? 'text-slate-500' : 'text-slate-400'}>
+                  <p style={{ color: paperColors.muted }}>
                     Horario: {group.schedule}
                   </p>
                 )}
@@ -300,57 +336,43 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
 
             {/* Tarjetas de Promedios del Grupo */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-6">
-              <div className={`p-3.5 rounded-xl border text-center ${
-                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Peso Promedio</p>
-                <p className="text-xl font-black mt-1">{stats.avgWeight} kg</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border text-center ${
-                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sentadilla Media</p>
-                <p className="text-xl font-black text-red-500 mt-1">{stats.avgSquat} kg</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border text-center ${
-                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Banca Media</p>
-                <p className="text-xl font-black mt-1">{stats.avgBench} kg</p>
-              </div>
-
-              <div className={`p-3.5 rounded-xl border text-center ${
-                isDark ? 'bg-slate-900/70 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <p className={`text-[10px] font-bold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Salto CMJ Medio</p>
-                <p className="text-xl font-black text-amber-500 mt-1">{stats.avgCMJ} cm</p>
-              </div>
+              {[
+                { label: 'Peso Promedio', val: `${stats.avgWeight} kg`, col: paperColors.text },
+                { label: 'Sentadilla Media', val: `${stats.avgSquat} kg`, col: paperColors.accent },
+                { label: 'Banca Media', val: `${stats.avgBench} kg`, col: paperColors.text },
+                { label: 'Salto CMJ Medio', val: `${stats.avgCMJ} cm`, col: paperColors.amber }
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="p-3.5 rounded-xl border text-center"
+                  style={{ backgroundColor: paperColors.cardBg, borderColor: paperColors.border }}
+                >
+                  <p className="text-[10px] font-bold uppercase" style={{ color: paperColors.muted }}>{kpi.label}</p>
+                  <p className="text-xl font-black mt-1" style={{ color: kpi.col }}>{kpi.val}</p>
+                </div>
+              ))}
             </div>
 
             {/* Podios de la Cuadrilla */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
               {/* Top Fuerza Relativa */}
-              <div className={`p-4 rounded-xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <h4 className="text-xs font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5 text-amber-400">
+              <div className="p-4 rounded-xl border" style={{ backgroundColor: paperColors.cardBg, borderColor: paperColors.border }}>
+                <h4 className="text-xs font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style={{ color: paperColors.amber }}>
                   <Crown className="w-4 h-4" />
                   <span>Top Fuerza Relativa (x Peso Corporal)</span>
                 </h4>
                 {stats.topLifters.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">Sin marcas suficientes</p>
+                  <p className="text-xs italic" style={{ color: paperColors.muted }}>Sin marcas suficientes</p>
                 ) : (
                   <div className="space-y-1.5">
                     {stats.topLifters.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className="font-bold flex items-center gap-2">
+                        <span className="font-bold flex items-center gap-2" style={{ color: paperColors.text }}>
                           <span className="text-sm">{['🥇', '🥈', '🥉'][idx]}</span>
                           <span>{item.name}</span>
                         </span>
-                        <span className="font-mono font-bold text-red-500">
-                          {item.ratio}x BW <span className="text-[10px] text-slate-400 font-normal">({item.weight}kg)</span>
+                        <span className="font-mono font-bold" style={{ color: paperColors.accent }}>
+                          {item.ratio}x BW <span className="text-[10px] font-normal" style={{ color: paperColors.muted }}>({item.weight}kg)</span>
                         </span>
                       </div>
                     ))}
@@ -359,24 +381,22 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
               </div>
 
               {/* Top Saltadores */}
-              <div className={`p-4 rounded-xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <h4 className="text-xs font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5 text-amber-400">
+              <div className="p-4 rounded-xl border" style={{ backgroundColor: paperColors.cardBg, borderColor: paperColors.border }}>
+                <h4 className="text-xs font-black uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style={{ color: paperColors.amber }}>
                   <Zap className="w-4 h-4" />
                   <span>Top Potencia & Salto CMJ</span>
                 </h4>
                 {stats.topJumpers.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">Sin saltos registrados</p>
+                  <p className="text-xs italic" style={{ color: paperColors.muted }}>Sin saltos registrados</p>
                 ) : (
                   <div className="space-y-1.5">
                     {stats.topJumpers.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs py-1">
-                        <span className="font-bold flex items-center gap-2">
+                        <span className="font-bold flex items-center gap-2" style={{ color: paperColors.text }}>
                           <span className="text-sm">{['🥇', '🥈', '🥉'][idx]}</span>
                           <span>{item.name}</span>
                         </span>
-                        <span className="font-mono font-bold text-amber-500">
+                        <span className="font-mono font-bold" style={{ color: paperColors.amber }}>
                           {item.height} cm
                         </span>
                       </div>
@@ -388,15 +408,15 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
 
             {/* Tabla Detallada de Miembros */}
             <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-slate-400" />
+              <h4 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5" style={{ color: paperColors.text }}>
+                <Users className="w-4 h-4" style={{ color: paperColors.muted }} />
                 <span>Nómina y Desempeño Individual de la Cuadrilla</span>
               </h4>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead>
-                    <tr className={isDark ? 'bg-slate-900/80 text-slate-400' : 'bg-slate-100 text-slate-600'}>
+                    <tr style={{ backgroundColor: paperColors.altBg, color: paperColors.muted }}>
                       <th className="py-2.5 px-3 rounded-l-lg">Atleta</th>
                       <th className="py-2.5 px-2 text-center">Peso</th>
                       <th className="py-2.5 px-2 text-center">Sentadilla</th>
@@ -406,22 +426,29 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
                       <th className="py-2.5 px-3 text-right rounded-r-lg">Ratio Rel.</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/40">
+                  <tbody>
                     {stats.athleteSummaries.map((ath, idx) => (
-                      <tr key={idx} className={isDark ? 'hover:bg-slate-900/40' : 'hover:bg-slate-50'}>
-                        <td className="py-2.5 px-3 font-bold">
-                          {ath.name} {ath.nickname && <span className="text-[10px] text-slate-400">"{ath.nickname}"</span>}
+                      <tr
+                        key={idx}
+                        className="border-b"
+                        style={{
+                          borderColor: paperColors.border,
+                          backgroundColor: idx % 2 === 1 ? paperColors.cardBg : 'transparent'
+                        }}
+                      >
+                        <td className="py-2.5 px-3 font-bold" style={{ color: paperColors.text }}>
+                          {ath.name} {ath.nickname && <span className="text-[10px]" style={{ color: paperColors.muted }}>"{ath.nickname}"</span>}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-mono">{ath.weight ? `${ath.weight} kg` : '-'}</td>
-                        <td className="py-2.5 px-2 text-center font-mono font-bold text-red-500">
+                        <td className="py-2.5 px-2 text-center font-mono" style={{ color: paperColors.muted }}>{ath.weight ? `${ath.weight} kg` : '-'}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold" style={{ color: paperColors.accent }}>
                           {ath.squat > 0 ? `${ath.squat} kg` : '-'}
                         </td>
-                        <td className="py-2.5 px-2 text-center font-mono">{ath.bench > 0 ? `${ath.bench} kg` : '-'}</td>
-                        <td className="py-2.5 px-2 text-center font-mono">{ath.deadlift > 0 ? `${ath.deadlift} kg` : '-'}</td>
-                        <td className="py-2.5 px-2 text-center font-mono font-bold text-amber-500">
+                        <td className="py-2.5 px-2 text-center font-mono" style={{ color: paperColors.text }}>{ath.bench > 0 ? `${ath.bench} kg` : '-'}</td>
+                        <td className="py-2.5 px-2 text-center font-mono" style={{ color: paperColors.text }}>{ath.deadlift > 0 ? `${ath.deadlift} kg` : '-'}</td>
+                        <td className="py-2.5 px-2 text-center font-mono font-bold" style={{ color: paperColors.amber }}>
                           {ath.jump > 0 ? `${ath.jump} cm` : '-'}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-500">
+                        <td className="py-2.5 px-3 text-right font-mono font-black" style={{ color: paperColors.emerald }}>
                           {ath.relSquat > 0 ? `${ath.relSquat}x` : '-'}
                         </td>
                       </tr>
@@ -432,9 +459,9 @@ export const GroupReportModal = ({ group, isOpen, onClose }) => {
             </div>
 
             {/* Firma */}
-            <div className="mt-8 pt-4 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
-              <p>Generado automáticamente por Máxima Potencia 2.0</p>
-              <p>Coach a cargo: <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>{assignedCoach?.name}</strong></p>
+            <div className="mt-8 pt-4 border-t flex items-center justify-between text-[11px]" style={{ borderColor: paperColors.border, color: paperColors.muted }}>
+              <p>Generado automáticamente por Máxima Potencia Pro</p>
+              <p>Coach a cargo: <strong style={{ color: paperColors.text }}>{assignedCoach?.name}</strong></p>
             </div>
 
           </div>

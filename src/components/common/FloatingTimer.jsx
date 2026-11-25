@@ -77,7 +77,7 @@ export const FloatingTimer = () => {
   // Floating Minimized Button
   if (isMinimized) {
     return (
-      <div className="fixed bottom-20 lg:bottom-6 right-4 z-40">
+      <div className="no-print fixed bottom-20 lg:bottom-6 right-4 z-40">
         <button
           onClick={() => { hapticTap(); setIsMinimized(false); }}
           className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full shadow-2xl border transition-all duration-200 transform hover:scale-105 active:scale-95 ${
@@ -105,7 +105,7 @@ export const FloatingTimer = () => {
 
   // Expanded Overlay Modal / Card
   return (
-    <div className="fixed bottom-20 lg:bottom-6 right-4 z-50 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl shadow-2xl p-5 text-white animate-in fade-in zoom-in-95">
+    <div className="no-print fixed bottom-20 lg:bottom-6 right-4 z-50 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-3xl shadow-2xl p-5 text-white animate-in fade-in zoom-in-95">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">

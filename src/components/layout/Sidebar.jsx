@@ -38,7 +38,7 @@ export const Sidebar = () => {
   const { currentPanel, setCurrentPanel, currentUser, currentUserProfile, currentCoach, setIsAuthModalOpen, isGuestMode, currentAppVersion, isSuperAdmin } = useApp();
 
   return (
-    <aside className="w-60 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-2.5">
+    <aside className="no-print w-60 bg-slate-900 border-r border-slate-800 flex-shrink-0 hidden lg:flex flex-col p-2.5">
       <div className="flex-1 flex flex-col w-full bg-slate-800/80 backdrop-blur rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden">
         {/* Brand Compacto */}
         <div className="px-3 py-2.5 border-b border-slate-700/50 shrink-0">
