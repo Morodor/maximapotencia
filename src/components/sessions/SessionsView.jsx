@@ -10,13 +10,24 @@ import {
   Edit3,
   Clock,
   Share2,
-  MessageCircle
+  MessageCircle,
+  Copy
 } from 'lucide-react';
+
+const normalizeExerciseName = (ex) => {
+  if (!ex) return '';
+  if (typeof ex === 'string') return ex;
+  if (typeof ex === 'object') {
+    return ex.name || ex.exercise || ex.title || ex.label || '';
+  }
+  return String(ex);
+};
 
 export const SessionsView = () => {
   const { sessions, deleteSession, athletes } = useApp();
   const [isCreating, setIsCreating] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [duplicatingSession, setDuplicatingSession] = useState(null);
 
   const handleShareWhatsApp = (s) => {
     const sessionDate = s.date?.toDate ? s.date.toDate() : new Date(s.date || 0);
@@ -38,11 +49,16 @@ export const SessionsView = () => {
     if (s.blocks && s.blocks.length > 0) {
       text += `\n📋 *PLAN DE TRABAJO:*\n`;
       s.blocks.forEach((b, idx) => {
-        const exName = Array.isArray(b.exercises) ? b.exercises.join(' + ') : (b.exercises || 'Ejercicio');
+        const exList = (Array.isArray(b?.exercises) ? b.exercises : (b?.exercises ? [b.exercises] : []))
+          .map(normalizeExerciseName)
+          .filter(Boolean);
+        const exName = exList.length > 0 ? exList.join(' + ') : 'Ejercicio';
         text += `\n*Bloque ${idx + 1}:* ${exName}\n`;
+        if (b.percentage) text += `• Intensidad: @ ${b.percentage}% 1RM\n`;
         if (b.sets || b.reps) text += `• Series y Reps: ${b.sets || 3}x${b.reps || 5}\n`;
-        if (b.intensity) text += `• Intensidad / Carga: ${b.intensity}\n`;
+        if (b.intensity) text += `• Carga / Intensidad: ${b.intensity}\n`;
         if (b.velocityTarget) text += `• Objetivo VBT: > ${b.velocityTarget} m/s\n`;
+        if (b.notes) text += `• Notas: ${b.notes}\n`;
       });
     }
 
@@ -56,13 +72,15 @@ export const SessionsView = () => {
     window.open(url, '_blank');
   };
 
-  if (isCreating || editingSession) {
+  if (isCreating || editingSession || duplicatingSession) {
     return (
       <SessionEditor 
         sessionToEdit={editingSession}
+        sessionToDuplicate={duplicatingSession}
         onBack={() => {
           setIsCreating(false);
           setEditingSession(null);
+          setDuplicatingSession(null);
         }} 
       />
     );
@@ -177,24 +195,35 @@ export const SessionsView = () => {
                   )}
                 </div>
 
-                {/* Pie de tarjeta con WhatsApp y Modificar */}
-                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                {/* Pie de tarjeta con WhatsApp, Duplicar y Modificar */}
+                <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
                   <button
                     onClick={() => handleShareWhatsApp(s)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-xl transition-all active:scale-95"
+                    className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1.5 rounded-xl transition-all active:scale-95"
                     title="Compartir resumen por WhatsApp"
                   >
                     <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
                     <span>WhatsApp</span>
                   </button>
 
-                  <button
-                    onClick={() => setEditingSession(s)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3.5 py-1.5 rounded-xl transition-all active:scale-95"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Modificar</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setDuplicatingSession(s)}
+                      className="flex items-center gap-1 text-xs font-bold text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 px-2.5 py-1.5 rounded-xl transition-all active:scale-95"
+                      title="Clonar esta sesión con fecha de hoy"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Duplicar</span>
+                    </button>
+
+                    <button
+                      onClick={() => setEditingSession(s)}
+                      className="flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 rounded-xl transition-all active:scale-95"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Modificar</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );

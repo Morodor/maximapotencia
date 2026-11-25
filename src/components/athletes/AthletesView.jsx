@@ -5,6 +5,7 @@ import { AthleteProfileModal } from './AthleteProfileModal';
 import { GroupManagementModal } from './GroupManagementModal';
 import { AthleteReportModal } from '../reports/AthleteReportModal';
 import { GroupReportModal } from '../reports/GroupReportModal';
+import { UserAvatar } from '../common/UserAvatar';
 import { 
   Search, 
   UserPlus, 
@@ -204,13 +205,7 @@ export const AthletesView = () => {
                   <tr key={athlete.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-white overflow-hidden flex-shrink-0">
-                          {athlete.photoUrl ? (
-                            <img src={athlete.photoUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            (athlete.name || 'A').charAt(0)
-                          )}
-                        </div>
+                        <UserAvatar profile={athlete} size="md" className="rounded-full" />
                         <div>
                           <p className="font-bold text-white leading-tight">{athlete.name}</p>
                           {athlete.nickname && (

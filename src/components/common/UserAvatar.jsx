@@ -89,7 +89,7 @@ export const UserAvatar = ({
 }) => {
   const [imgError, setImgError] = useState(false);
 
-  const photoSrc = profile?.avatarUrl || profile?.photoURL || '';
+  const photoSrc = profile?.avatarUrl || profile?.photoURL || profile?.photoUrl || '';
   useEffect(() => {
     setImgError(false);
   }, [photoSrc, profile?.avatarType]);

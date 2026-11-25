@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { PlateVisualizer } from '../common/PlateVisualizer';
 import { 
   ArrowLeft, 
   Save, 
@@ -11,8 +12,16 @@ import {
   X, 
   Check, 
   Calendar, 
-  Layers 
+  Layers,
+  Copy,
+  BookmarkPlus,
+  FolderOpen,
+  Calculator,
+  Dumbbell
 } from 'lucide-react';
+
+const TEMPLATES_STORAGE_KEY = 'mp_session_templates';
+const PERCENTAGE_PRESETS = [70, 75, 80, 85, 90, 95];
 
 const normalizeExerciseName = (ex) => {
   if (!ex) return '';
@@ -28,12 +37,22 @@ const normalizeBlockExercises = (rawExercises) => {
   return arr.map(normalizeExerciseName).filter(Boolean);
 };
 
-export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
-  const { athletes, groups, exercises, addSession, updateSession } = useApp();
+export const SessionEditor = ({ sessionToEdit = null, sessionToDuplicate = null, onBack }) => {
+  const { athletes, groups, exercises, rmRecords, addSession, updateSession, showNotification } = useApp();
   const isEditing = Boolean(sessionToEdit);
+  const isDuplicating = Boolean(sessionToDuplicate && !sessionToEdit);
+  const sourceSession = sessionToEdit || sessionToDuplicate;
+
+  const [sessionTitle, setSessionTitle] = useState(() => {
+    if (isEditing) return sessionToEdit.title || '';
+    if (isDuplicating && sessionToDuplicate?.title) {
+      return `${sessionToDuplicate.title} (Copia)`;
+    }
+    return '';
+  });
 
   const [date, setDate] = useState(() => {
-    if (sessionToEdit?.date) {
+    if (isEditing && sessionToEdit?.date) {
       if (sessionToEdit.date.toDate) {
         return sessionToEdit.date.toDate().toISOString().split('T')[0];
       }
@@ -45,25 +64,27 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
   });
 
   const [selectedAttendees, setSelectedAttendees] = useState(() => {
-    if (sessionToEdit?.attendees && Array.isArray(sessionToEdit.attendees)) {
-      return sessionToEdit.attendees;
+    if (sourceSession?.attendees && Array.isArray(sourceSession.attendees)) {
+      return sourceSession.attendees;
     }
     return athletes.map(a => a.id);
   });
 
   const [sessionBlocks, setSessionBlocks] = useState(() => {
-    if (sessionToEdit?.blocks && Array.isArray(sessionToEdit.blocks)) {
-      return sessionToEdit.blocks.map((b, i) => ({
-        id: b?.id || (Date.now() + i),
+    if (sourceSession?.blocks && Array.isArray(sourceSession.blocks)) {
+      return sourceSession.blocks.map((b, i) => ({
+        id: isDuplicating ? (Date.now() + i) : (b?.id || (Date.now() + i)),
         exercises: normalizeBlockExercises(b?.exercises),
-        notes: typeof b?.notes === 'string' ? b.notes : ''
+        notes: typeof b?.notes === 'string' ? b.notes : '',
+        percentage: b?.percentage || ''
       }));
     }
-    if (sessionToEdit?.exercises && Array.isArray(sessionToEdit.exercises)) {
+    if (sourceSession?.exercises && Array.isArray(sourceSession.exercises)) {
       return [{
         id: Date.now(),
-        exercises: normalizeBlockExercises(sessionToEdit.exercises),
-        notes: ''
+        exercises: normalizeBlockExercises(sourceSession.exercises),
+        notes: '',
+        percentage: ''
       }];
     }
     return [];
@@ -74,9 +95,134 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
   const [currentBlockExercises, setCurrentBlockExercises] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState('');
   const [sessionNotes, setSessionNotes] = useState('');
+  const [blockPercentage, setBlockPercentage] = useState('');
+
+  // Calculadora %1RM + Barra Olímpica
+  const [calcAthleteId, setCalcAthleteId] = useState(() => {
+    if (sourceSession?.attendees?.length > 0) return sourceSession.attendees[0];
+    return athletes[0]?.id || '';
+  });
+  const [calcBarWeight, setCalcBarWeight] = useState(20);
+  const [activePlatePreview, setActivePlatePreview] = useState(null);
+
+  // Plantillas de Sesión en localStorage
+  const [templates, setTemplates] = useState(() => {
+    try {
+      const raw = localStorage.getItem(TEMPLATES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+
+  const savedInventory = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('mp_plate_inventory');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!calcAthleteId && (selectedAttendees.length > 0 || athletes.length > 0)) {
+      setCalcAthleteId(selectedAttendees[0] || athletes[0]?.id || '');
+    }
+  }, [calcAthleteId, selectedAttendees, athletes]);
+
+  const persistTemplates = (nextList) => {
+    setTemplates(nextList);
+    try {
+      localStorage.setItem(TEMPLATES_STORAGE_KEY, JSON.stringify(nextList));
+    } catch (err) {
+      console.error('Error al guardar plantillas:', err);
+    }
+  };
+
+  const handleSaveTemplate = () => {
+    const cleanName = templateName.trim();
+    if (!cleanName || sessionBlocks.length === 0) return;
+
+    const newTpl = {
+      id: `tpl_${Date.now()}`,
+      name: cleanName,
+      blocks: sessionBlocks.map(b => ({
+        exercises: normalizeBlockExercises(b.exercises),
+        notes: b.notes || '',
+        percentage: b.percentage || ''
+      })),
+      createdAt: new Date().toISOString()
+    };
+
+    persistTemplates([newTpl, ...templates]);
+    setTemplateName('');
+    setIsSavingTemplate(false);
+    showNotification?.(`Plantilla "${cleanName}" guardada.`);
+  };
+
+  const handleApplyTemplate = (tpl) => {
+    if (!tpl?.blocks?.length) return;
+    const baseTime = Date.now();
+    const mapped = tpl.blocks.map((b, i) => ({
+      id: baseTime + i,
+      exercises: normalizeBlockExercises(b.exercises),
+      notes: b.notes || '',
+      percentage: b.percentage || ''
+    }));
+
+    setSessionBlocks(prev => (prev.length === 0 ? mapped : [...prev, ...mapped]));
+    if (!sessionTitle.trim()) {
+      setSessionTitle(tpl.name);
+    }
+    showNotification?.(`Plantilla "${tpl.name}" aplicada (${mapped.length} bloques).`);
+  };
+
+  const handleDeleteTemplate = (tplId) => {
+    persistTemplates(templates.filter(t => t.id !== tplId));
+    showNotification?.('Plantilla eliminada.');
+  };
 
   // Lista de todos los ejercicios disponibles ordenados alfabéticamente
   const allExercises = Object.values(exercises).flat().map(e => e.name).sort();
+
+  // Detectar porcentaje explícito o desde notas (@ 80%)
+  const effectivePct = useMemo(() => {
+    const explicit = parseFloat(blockPercentage);
+    if (!Number.isNaN(explicit) && explicit >= 10 && explicit <= 120) {
+      return explicit;
+    }
+    const match = sessionNotes.match(/(\d{2,3})\s*%/);
+    if (match) {
+      const detected = parseInt(match[1], 10);
+      if (detected >= 10 && detected <= 120) return detected;
+    }
+    return null;
+  }, [blockPercentage, sessionNotes]);
+
+  // Calcular 1RM y carga objetivo para los ejercicios del bloque actual
+  const exerciseTargets = useMemo(() => {
+    if (!effectivePct || currentBlockExercises.length === 0) return [];
+    const targetAthleteId = calcAthleteId || selectedAttendees[0] || athletes[0]?.id;
+    return currentBlockExercises.map(exName => {
+      const normalized = exName.trim().toLowerCase();
+      const matching = (rmRecords || []).filter(r =>
+        r.userId === targetAthleteId &&
+        String(r.exercise || '').trim().toLowerCase() === normalized
+      );
+      const bestRM = matching.reduce((max, r) => {
+        const w = parseFloat(r.weight) || 0;
+        return w > max ? w : max;
+      }, 0);
+      const targetWeight = bestRM > 0 ? Math.round((bestRM * effectivePct / 100) * 2) / 2 : 0;
+      return {
+        exercise: exName,
+        bestRM,
+        targetWeight
+      };
+    });
+  }, [effectivePct, currentBlockExercises, calcAthleteId, selectedAttendees, athletes, rmRecords]);
 
   const toggleAttendee = (id) => {
     if (selectedAttendees.includes(id)) {
@@ -104,6 +250,8 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
     setEditingBlockId(block.id);
     setCurrentBlockExercises(normalizeBlockExercises(block.exercises));
     setSessionNotes(typeof block.notes === 'string' ? block.notes : '');
+    setBlockPercentage(block.percentage ? String(block.percentage) : '');
+    setActivePlatePreview(null);
   };
 
   const cancelEditingBlock = () => {
@@ -111,6 +259,8 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
     setCurrentBlockExercises([]);
     setSessionNotes('');
     setSelectedExercise('');
+    setBlockPercentage('');
+    setActivePlatePreview(null);
   };
 
   // Guarda o actualiza un bloque en la sesión
@@ -124,7 +274,8 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
           return {
             ...b,
             exercises: [...currentBlockExercises],
-            notes: sessionNotes
+            notes: sessionNotes,
+            percentage: effectivePct || null
           };
         }
         return b;
@@ -137,7 +288,8 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
         {
           id: Date.now(),
           exercises: [...currentBlockExercises],
-          notes: sessionNotes
+          notes: sessionNotes,
+          percentage: effectivePct || null
         }
       ]);
     }
@@ -145,6 +297,8 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
     setCurrentBlockExercises([]);
     setSessionNotes('');
     setSelectedExercise('');
+    setBlockPercentage('');
+    setActivePlatePreview(null);
   };
 
   const removeBlock = (id) => {
@@ -165,6 +319,7 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
     }
 
     const payload = {
+      title: sessionTitle.trim() || 'Sesión de Entrenamiento',
       date: date,
       attendees: selectedAttendees,
       blocks: sessionBlocks,
@@ -200,6 +355,12 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
             <span>Modo Edición Activado</span>
           </span>
         )}
+        {isDuplicating && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-bold w-fit">
+            <Copy className="w-3.5 h-3.5" />
+            <span>Duplicando Sesión (se guardará como nueva)</span>
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 min-w-0 max-w-full">
@@ -207,25 +368,40 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
         <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 min-w-0 max-w-full overflow-hidden shadow-xl">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold text-white">
-              {isEditing ? 'Modificar Sesión' : 'Configurar Sesión'}
+              {isEditing ? 'Modificar Sesión' : isDuplicating ? 'Clonar Sesión' : 'Configurar Sesión'}
             </h3>
             {isEditing && (
               <span className="text-xs text-slate-400 font-mono">ID: {sessionToEdit.id.slice(0, 6)}...</span>
             )}
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-red-400" />
-              <span>Fecha de la Sesión *</span>
-            </label>
-            <input
-              type="date"
-              required
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-red-400" />
+                <span>Fecha *</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
+                Título (opcional)
+              </label>
+              <input
+                type="text"
+                value={sessionTitle}
+                onChange={e => setSessionTitle(e.target.value)}
+                placeholder="Ej. Fuerza & Arranque"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+              />
+            </div>
           </div>
 
           <div>
@@ -339,17 +515,100 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
 
         {/* Añadir / Modificar Bloques */}
         <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-8 space-y-6 min-w-0 max-w-full overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
               <Layers className="w-5 h-5 text-red-400" />
               <span>Bloques de Entrenamiento</span>
             </h3>
-            {editingBlockId !== null && (
-              <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
-                Editando Bloque
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {editingBlockId !== null && (
+                <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                  Editando Bloque
+                </span>
+              )}
+              {sessionBlocks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsSavingTemplate(prev => !prev)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-500/30 border border-indigo-500/30 px-2.5 py-1.5 rounded-lg transition-colors"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  <span>Guardar como Plantilla</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Barra de Plantillas de Sesión */}
+          {(isSavingTemplate || templates.length > 0) && (
+            <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3 space-y-2.5">
+              {isSavingTemplate && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={e => setTemplateName(e.target.value)}
+                    placeholder="Nombre de la plantilla (ej. Día Arranque + Sentadilla)"
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSaveTemplate}
+                      disabled={!templateName.trim()}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSavingTemplate(false);
+                        setTemplateName('');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-700 text-slate-300 text-xs font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {templates.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <FolderOpen className="w-3 h-3 text-indigo-400" />
+                    <span>Plantillas Guardadas (clic para cargar):</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {templates.map(tpl => (
+                      <div
+                        key={tpl.id}
+                        className="inline-flex items-center bg-slate-900/90 border border-slate-700 hover:border-indigo-500/50 rounded-lg overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleApplyTemplate(tpl)}
+                          className="px-2.5 py-1 text-xs font-semibold text-slate-200 hover:text-indigo-300 transition-colors"
+                          title={`Aplicar ${tpl.name} (${tpl.blocks?.length || 0} bloques)`}
+                        >
+                          {tpl.name} <span className="text-[10px] text-slate-500 font-mono">({tpl.blocks?.length || 0})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTemplate(tpl.id)}
+                          className="px-1.5 py-1 text-slate-500 hover:text-red-400 border-l border-slate-800 transition-colors"
+                          title="Eliminar plantilla"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={`border rounded-xl p-3 sm:p-4 space-y-3 min-w-0 max-w-full transition-all ${
             editingBlockId !== null 
@@ -417,6 +676,156 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
             </div>
           </div>
 
+          {/* Intensidad %1RM + Asistente de Barra Olímpica */}
+          <div className="bg-slate-800/50 border border-slate-700/60 rounded-xl p-3 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Calculator className="w-3.5 h-3.5 text-amber-400" />
+                <span>Intensidad Objetivo (%1RM)</span>
+              </span>
+              {effectivePct && !blockPercentage && (
+                <span className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full font-semibold">
+                  Detectado de notas: {effectivePct}%
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {PERCENTAGE_PRESETS.map(pct => {
+                const isActive = parseFloat(blockPercentage) === pct;
+                return (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setBlockPercentage(isActive ? '' : String(pct))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono border transition-colors ${
+                      isActive
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow'
+                        : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-amber-500/50'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                );
+              })}
+
+              <div className="flex items-center gap-1 ml-auto">
+                <input
+                  type="number"
+                  min="10"
+                  max="120"
+                  placeholder="% Otro"
+                  value={blockPercentage}
+                  onChange={e => setBlockPercentage(e.target.value)}
+                  className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono text-center focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                {blockPercentage && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBlockPercentage('');
+                      setActivePlatePreview(null);
+                    }}
+                    className="p-1 text-slate-400 hover:text-white"
+                    title="Limpiar %"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {effectivePct && currentBlockExercises.length > 0 && (
+              <div className="pt-2.5 border-t border-slate-700/70 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0">Atleta:</span>
+                    <select
+                      value={calcAthleteId}
+                      onChange={e => {
+                        setCalcAthleteId(e.target.value);
+                        setActivePlatePreview(null);
+                      }}
+                      className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500 max-w-[180px] truncate"
+                    >
+                      {athletes.map(a => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px] font-bold">
+                    {[20, 15].map(bw => (
+                      <button
+                        key={bw}
+                        type="button"
+                        onClick={() => setCalcBarWeight(bw)}
+                        className={`px-2 py-0.5 rounded-md transition-colors ${
+                          calcBarWeight === bw ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Barra {bw}kg
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {exerciseTargets.map(item => {
+                    const isPreviewOpen = activePlatePreview?.exercise === item.exercise;
+                    return (
+                      <div
+                        key={item.exercise}
+                        className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-700/60 rounded-lg px-3 py-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-bold text-white truncate">{item.exercise}</p>
+                          {item.bestRM > 0 ? (
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              1RM {item.bestRM} kg →{' '}
+                              <span className="text-amber-400 font-bold">
+                                {item.targetWeight} kg ({effectivePct}%)
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-slate-500 italic">Sin 1RM registrado para este atleta</p>
+                          )}
+                        </div>
+
+                        {item.targetWeight > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActivePlatePreview(isPreviewOpen ? null : { exercise: item.exercise, targetWeight: item.targetWeight })
+                            }
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors shrink-0 ${
+                              isPreviewOpen
+                                ? 'bg-red-600 text-white border-red-500'
+                                : 'bg-slate-800 text-slate-200 border-slate-600 hover:border-amber-400'
+                            }`}
+                          >
+                            <Dumbbell className="w-3.5 h-3.5" />
+                            <span>{isPreviewOpen ? 'Ocultar Barra' : 'Ver Barra'}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {activePlatePreview && (
+                  <div className="pt-1">
+                    <PlateVisualizer
+                      targetWeight={activePlatePreview.targetWeight}
+                      barWeight={calcBarWeight}
+                      userInventory={savedInventory}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">
               Notas del Bloque (RPE, Series, Descanso, Porcentajes)
@@ -480,6 +889,11 @@ export const SessionEditor = ({ sessionToEdit = null, onBack }) => {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-xs font-bold text-red-400">Bloque #{idx + 1}</span>
+                        {b.percentage && (
+                          <span className="text-[10px] font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold">
+                            {b.percentage}% 1RM
+                          </span>
+                        )}
                         {editingBlockId === b.id && (
                           <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-bold">
                             Editando ahora

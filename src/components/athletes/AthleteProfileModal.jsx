@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Award, Zap, Scale, Ruler, Cake, History, Activity, FileText, Send } from 'lucide-react';
+import { X, Award, Zap, Scale, Ruler, Cake, History, Activity, FileText, Send, Share2 } from 'lucide-react';
 import { AthleteReportModal } from '../reports/AthleteReportModal';
+import { UserAvatar } from '../common/UserAvatar';
+import { PRShareCardModal } from '../common/PRShareCardModal';
 
 export const AthleteProfileModal = ({ athlete, isOpen, onClose, onGoToHistory }) => {
   const { rmRecords, powerRecords, getAthleteGroups, setCurrentPanel } = useApp();
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [sharePRData, setSharePRData] = useState(null);
 
   if (!isOpen || !athlete) return null;
 
@@ -58,13 +61,11 @@ export const AthleteProfileModal = ({ athlete, isOpen, onClose, onGoToHistory })
 
         {/* Header del Perfil */}
         <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-800 text-center sm:text-left">
-          <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-red-500/40 flex items-center justify-center text-3xl font-bold text-white shadow-lg overflow-hidden flex-shrink-0">
-            {athlete.photoUrl ? (
-              <img src={athlete.photoUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              (athlete.name || 'A').charAt(0)
-            )}
-          </div>
+          <UserAvatar
+            profile={athlete}
+            size="xl"
+            className="rounded-full ring-2 ring-red-500/40"
+          />
           <div>
             <h3 className="text-2xl font-extrabold text-white">{athlete.name}</h3>
             {athlete.nickname && (
@@ -189,11 +190,28 @@ export const AthleteProfileModal = ({ athlete, isOpen, onClose, onGoToHistory })
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {Object.entries(uniquePRs).map(([exercise, data]) => (
-                <div key={exercise} className="bg-slate-800/60 border border-slate-700/40 p-3 rounded-xl flex justify-between items-center">
-                  <span className="text-xs text-slate-300 font-medium truncate pr-2">{exercise}</span>
-                  <span className="text-sm font-bold font-mono text-white flex-shrink-0">
-                    {data.value} {data.unit}
-                  </span>
+                <div key={exercise} className="bg-slate-800/60 border border-slate-700/40 p-3 rounded-xl flex justify-between items-center gap-2">
+                  <span className="text-xs text-slate-300 font-medium truncate">{exercise}</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-sm font-bold font-mono text-white">
+                      {data.value} {data.unit}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSharePRData({
+                        athlete,
+                        athleteName: athlete.name,
+                        exercise,
+                        value: data.value,
+                        unit: data.unit,
+                        date: data.date
+                      })}
+                      title="Compartir Tarjeta de PR"
+                      className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -206,6 +224,13 @@ export const AthleteProfileModal = ({ athlete, isOpen, onClose, onGoToHistory })
         athlete={athlete}
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
+      />
+
+      {/* Modal de Tarjeta Compartible de PR */}
+      <PRShareCardModal
+        isOpen={!!sharePRData}
+        onClose={() => setSharePRData(null)}
+        prData={sharePRData}
       />
     </div>
   );

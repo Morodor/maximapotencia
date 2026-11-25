@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Calculator, Save, TrendingUp, Award, Trash2 } from 'lucide-react';
+import { Calculator, Save, TrendingUp, Award, Trash2, Share2 } from 'lucide-react';
 import { PlateVisualizer } from '../common/PlateVisualizer';
+import { PRShareCardModal } from '../common/PRShareCardModal';
 
 export const RMView = () => {
   const { athletes, exercises, rmRecords, addRMRecord, deleteRMRecord } = useApp();
+  const [sharePRData, setSharePRData] = useState(null);
 
   const [selectedAthlete, setSelectedAthlete] = useState('');
   const [selectedExercise, setSelectedExercise] = useState('');
@@ -216,8 +218,23 @@ export const RMView = () => {
                     {r.date?.toDate ? r.date.toDate().toLocaleDateString('es-ES') : r.date}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-lg font-black font-mono text-emerald-400">{r.weight} kg</span>
+                  <button
+                    type="button"
+                    onClick={() => setSharePRData({
+                      athlete: athletes.find(a => a.id === r.userId) || null,
+                      athleteName: getAthleteName(r.userId),
+                      exercise: r.exercise,
+                      value: r.weight,
+                      unit: 'kg',
+                      date: r.date
+                    })}
+                    className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/15 rounded-lg transition-colors"
+                    title="Compartir Tarjeta de PR"
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => deleteRMRecord(r.id)}
                     className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-slate-700/50 rounded-lg transition-colors"
@@ -231,6 +248,12 @@ export const RMView = () => {
           )}
         </div>
       </div>
+
+      <PRShareCardModal
+        isOpen={!!sharePRData}
+        onClose={() => setSharePRData(null)}
+        prData={sharePRData}
+      />
     </div>
   );
 };

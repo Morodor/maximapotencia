@@ -8,6 +8,7 @@ import { FloatingTimer } from './components/common/FloatingTimer';
 import { UpdateBanner } from './components/system/UpdateBanner';
 import { UpdateModal } from './components/system/UpdateModal';
 import { AnnouncementBanner } from './components/system/AnnouncementBanner';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 
 // Carga perezosa (Code Splitting) para rendimiento móvil óptimo
@@ -89,14 +90,16 @@ const MainContent = () => {
         <Header />
         
         <div className="flex-1 min-w-0 w-full max-w-full">
-          <Suspense fallback={<ModuleFallback />}>
-            {renderPanel()}
-          </Suspense>
+          <ErrorBoundary resetKey={currentPanel} moduleName={currentPanel}>
+            <Suspense fallback={<ModuleFallback />}>
+              {renderPanel()}
+            </Suspense>
+          </ErrorBoundary>
         </div>
 
         {/* Footer */}
         <footer className="mt-12 pt-6 border-t border-slate-900 text-center text-xs text-slate-600">
-          <p>Máxima Potencia v{currentAppVersion || '2.5.1'} • Plataforma de Rendimiento Deportivo y Fuerza</p>
+          <p>Máxima Potencia v{currentAppVersion || '2.5.2'} • Plataforma de Rendimiento Deportivo y Fuerza</p>
         </footer>
       </main>
 
@@ -120,8 +123,10 @@ const MainContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <ErrorBoundary moduleName="App">
+      <AppProvider>
+        <MainContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

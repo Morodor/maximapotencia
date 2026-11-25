@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { X, Save, User, Layers, Camera, Upload, Trash2, Image } from 'lucide-react';
+import { UserAvatar, AVATAR_PRESETS, PROFILE_COLORS } from '../common/UserAvatar';
 
 const compressImageFile = (file, maxWidth = 360, quality = 0.75) => {
   return new Promise((resolve, reject) => {
@@ -50,7 +51,10 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
     height: '',
     phone: '',
     description: '',
-    photoUrl: ''
+    photoUrl: '',
+    avatarType: 'initials',
+    avatarPreset: 'weightlifter',
+    color: '#ef4444'
   });
 
   const [selectedGroupIds, setSelectedGroupIds] = useState([]);
@@ -65,7 +69,10 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
         height: athleteToEdit.height || '',
         phone: athleteToEdit.phone || '',
         description: athleteToEdit.description || '',
-        photoUrl: athleteToEdit.photoUrl || ''
+        photoUrl: athleteToEdit.photoUrl || '',
+        avatarType: athleteToEdit.avatarType || (athleteToEdit.photoUrl ? 'photo' : 'initials'),
+        avatarPreset: athleteToEdit.avatarPreset || 'weightlifter',
+        color: athleteToEdit.color || '#ef4444'
       });
       // Sincronizar grupos del atleta
       const current = athleteToEdit.groupIds || 
@@ -80,7 +87,10 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
         height: '',
         phone: '',
         description: '',
-        photoUrl: ''
+        photoUrl: '',
+        avatarType: 'initials',
+        avatarPreset: 'weightlifter',
+        color: '#ef4444'
       });
       setSelectedGroupIds([]);
     }
@@ -99,6 +109,9 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
       phone: formData.phone,
       description: formData.description,
       photoUrl: formData.photoUrl,
+      avatarType: formData.avatarType,
+      avatarPreset: formData.avatarPreset,
+      color: formData.color,
       groupIds: selectedGroupIds
     };
 
@@ -217,15 +230,17 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-slate-300 uppercase">
-                  Foto del Atleta
+                  Avatar / Foto Deportiva
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowUrlInput(!showUrlInput)}
-                  className="text-[10px] text-slate-400 hover:text-white underline"
-                >
-                  {showUrlInput ? 'Cámara / Galería' : 'Pegar URL'}
-                </button>
+                {formData.avatarType === 'photo' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    className="text-[10px] text-slate-400 hover:text-white underline"
+                  >
+                    {showUrlInput ? 'Cámara / Galería' : 'Pegar URL'}
+                  </button>
+                )}
               </div>
 
               {/* Input de archivo oculto para activar Cámara o Galería */}
@@ -240,7 +255,7 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
                   setIsProcessingPhoto(true);
                   try {
                     const dataUrl = await compressImageFile(file);
-                    setFormData(prev => ({ ...prev, photoUrl: dataUrl }));
+                    setFormData(prev => ({ ...prev, photoUrl: dataUrl, avatarType: 'photo' }));
                   } catch (err) {
                     console.error('Error al procesar foto:', err);
                   } finally {
@@ -249,57 +264,115 @@ export const AthleteModal = ({ isOpen, onClose, athleteToEdit = null }) => {
                 }}
               />
 
-              {showUrlInput ? (
-                <input
-                  type="url"
-                  value={formData.photoUrl}
-                  onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                />
-              ) : (
-                <div className="flex items-center gap-3 bg-slate-800/80 border border-slate-700 rounded-xl p-2.5">
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-700 shrink-0 border border-slate-600 flex items-center justify-center">
-                    {formData.photoUrl ? (
-                      <img src={formData.photoUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-slate-400" />
-                    )}
-                  </div>
+              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-3">
+                <div className="flex items-center gap-3">
+                  <UserAvatar profile={formData} name={formData.name || 'Atleta'} size="lg" className="rounded-full" />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white font-semibold truncate">
-                      {formData.photoUrl ? 'Foto seleccionada' : 'Sin foto cargada'}
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      {isProcessingPhoto ? 'Optimizando imagen...' : 'Cámara o Galería del teléfono'}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isProcessingPhoto}
-                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 shadow transition-colors active:scale-95"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                      <span>{formData.photoUrl ? 'Cambiar' : 'Subir'}</span>
-                    </button>
-
-                    {formData.photoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, photoUrl: '' }))}
-                        className="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600/30 text-slate-400 hover:text-red-400 transition-colors"
-                        title="Quitar foto"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <div className="grid grid-cols-3 gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-700/70">
+                      {[
+                        { id: 'photo', label: 'Foto' },
+                        { id: 'preset', label: 'Ícono' },
+                        { id: 'initials', label: 'Iniciales' }
+                      ].map(tab => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, avatarType: tab.id }))}
+                          className={`py-1 px-1.5 rounded-md text-[11px] font-bold transition-colors ${
+                            formData.avatarType === tab.id
+                              ? 'bg-red-600 text-white shadow'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {formData.avatarType === 'photo' && (
+                  showUrlInput ? (
+                    <input
+                      type="url"
+                      value={formData.photoUrl}
+                      onChange={e => setFormData({ ...formData, photoUrl: e.target.value, avatarType: 'photo' })}
+                      placeholder="https://..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-red-500 text-xs"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-400 truncate">
+                        {isProcessingPhoto ? 'Optimizando imagen...' : (formData.photoUrl ? 'Foto cargada y lista' : 'Sube desde cámara o galería')}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isProcessingPhoto}
+                          className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 shadow transition-colors active:scale-95"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>{formData.photoUrl ? 'Cambiar' : 'Subir'}</span>
+                        </button>
+
+                        {formData.photoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, photoUrl: '', avatarType: 'initials' }))}
+                            className="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600/30 text-slate-400 hover:text-red-400 transition-colors"
+                            title="Quitar foto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {formData.avatarType === 'preset' && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {AVATAR_PRESETS.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, avatarType: 'preset', avatarPreset: p.id }))}
+                        title={p.label}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all border ${
+                          formData.avatarPreset === p.id
+                            ? 'ring-2 ring-white border-white scale-105'
+                            : 'border-slate-700 opacity-80 hover:opacity-100'
+                        }`}
+                        style={{ background: p.gradient }}
+                      >
+                        {p.emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {formData.avatarType === 'initials' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] text-slate-400 mr-1">Color:</span>
+                    {PROFILE_COLORS.map(hex => (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, avatarType: 'initials', color: hex }))}
+                        className={`w-6 h-6 rounded-full transition-transform border ${
+                          formData.color === hex
+                            ? 'ring-2 ring-white border-white scale-110'
+                            : 'border-white/20 hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: hex }}
+                        title={hex}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
