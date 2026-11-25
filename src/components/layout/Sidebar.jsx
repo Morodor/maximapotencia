@@ -47,7 +47,7 @@ export const Sidebar = () => {
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-extrabold text-white tracking-tight leading-tight truncate">Máxima Potencia</h1>
-              <span className="text-[10px] font-mono text-red-400 font-semibold block leading-tight">v{currentAppVersion || '2.5.0'} Pro</span>
+              <span className="text-[10px] font-mono text-red-400 font-semibold block leading-tight">v{currentAppVersion || '2.5.1'} Pro</span>
             </div>
           </div>
         </div>
@@ -100,11 +100,11 @@ export const Sidebar = () => {
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 overflow-y-auto custom-scrollbar p-1.5 space-y-0.5">
+        <nav className="flex-1 min-h-0 flex flex-col gap-1 p-1.5 overflow-y-auto custom-scrollbar">
           {isSuperAdmin && (
             <button
               onClick={() => setCurrentPanel('admin')}
-              className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl font-bold text-xs transition-all duration-150 mb-1 border ${
+              className={`w-full flex-1 min-h-[30px] flex items-center justify-between px-3 py-1 rounded-xl font-bold text-xs transition-all duration-150 border ${
                 currentPanel === 'admin'
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-950/40'
                   : 'bg-amber-950/20 text-amber-300 border-amber-500/30 hover:bg-amber-950/40 hover:border-amber-500/50'
@@ -129,7 +129,7 @@ export const Sidebar = () => {
               <button
                 key={item.id}
                 onClick={() => setCurrentPanel(item.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl font-medium text-[13px] transition-all duration-150 ${
+                className={`w-full flex-1 min-h-[30px] flex items-center gap-2.5 px-3 py-1 rounded-xl font-medium text-[13px] transition-all duration-150 ${
                   isActive
                     ? 'bg-red-600 text-white shadow-md shadow-red-900/30 font-semibold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-700/60'

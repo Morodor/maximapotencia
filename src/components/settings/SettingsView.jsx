@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
 import { 
   Settings, 
@@ -33,7 +34,7 @@ import {
 } from 'lucide-react';
 import { CoachManagementModal } from '../coaches/CoachManagementModal';
 import { GoogleIcon } from '../auth/AuthModal';
-import { DEFAULT_APK_URL, CURRENT_APP_VERSION } from '../../utils/updateManager';
+import { DEFAULT_APK_URL, CURRENT_APP_VERSION, reloadWebApp } from '../../utils/updateManager';
 import { getSuiteConfig, saveSuiteConfig, checkSpeedTrackerInstalled, launchSpeedTracker } from '../../utils/suiteLauncher';
 
 export const SettingsView = () => {
@@ -818,13 +819,23 @@ export const SettingsView = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsUpdateModalOpen(true)}
-              className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
-            >
-              <Download className="w-4 h-4" />
-              <span>Instalar v{appUpdateInfo?.latestVersion}</span>
-            </button>
+            {Capacitor.isNativePlatform() ? (
+              <button
+                onClick={() => setIsUpdateModalOpen(true)}
+                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>Instalar v{appUpdateInfo?.latestVersion}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => reloadWebApp()}
+                className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/40 transition-all active:scale-95"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Recargar v{appUpdateInfo?.latestVersion}</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-800 flex items-center gap-3 text-xs text-slate-300">

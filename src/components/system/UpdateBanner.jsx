@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
-import { Rocket, X, ArrowRight, Sparkles } from 'lucide-react';
+import { reloadWebApp } from '../../utils/updateManager';
+import { Rocket, X, ArrowRight, RefreshCw } from 'lucide-react';
 
 export const UpdateBanner = () => {
   const { hasUpdateAvailable, appUpdateInfo, setIsUpdateModalOpen } = useApp();
   const [isDismissed, setIsDismissed] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     if (appUpdateInfo?.latestVersion) {
@@ -49,11 +52,20 @@ export const UpdateBanner = () => {
 
       <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 w-full sm:w-auto justify-end">
         <button
-          onClick={() => setIsUpdateModalOpen(true)}
+          onClick={() => (isNative ? setIsUpdateModalOpen(true) : reloadWebApp())}
           className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-md shadow-red-950/30 transition-all active:scale-95"
         >
-          <span>Actualizar</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          {isNative ? (
+            <>
+              <span>Actualizar</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Recargar Web</span>
+            </>
+          )}
         </button>
         <button
           onClick={handleDismiss}

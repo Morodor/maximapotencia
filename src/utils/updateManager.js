@@ -1,7 +1,7 @@
 import { Browser } from '@capacitor/browser';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
-export const CURRENT_APP_VERSION = "2.5.0";
+export const CURRENT_APP_VERSION = "2.5.1";
 export const APP_BUILD_DATE = "2026-11-25";
 export const DEFAULT_APK_URL = "https://github.com/Morodor/maximapotencia/releases/latest/download/Maxima_Potencia.apk";
 
@@ -40,6 +40,21 @@ export const isNewerVersion = (remoteVersion, currentVersion = CURRENT_APP_VERSI
 };
 
 /**
+ * Recarga la aplicación web limpiando cachés del navegador si están disponibles
+ */
+export const reloadWebApp = async () => {
+  try {
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {
+    console.warn('No se pudo limpiar caché del navegador:', e);
+  }
+  window.location.reload();
+};
+
+/**
  * Inicia la actualización nativa con 1 solo clic:
  * Descarga el archivo APK directamente en background dentro de la app
  * y lanza automáticamente el instalador de Android sin pasar por Chrome.
@@ -70,8 +85,8 @@ export const startNativeUpdate = async (downloadUrl, onProgress, onError) => {
       return downloadAndInstallUpdate(url);
     }
   } else {
-    // Si está en navegador de PC
-    window.open(url, '_blank');
+    // En la versión web, recargar la página para obtener el bundle más reciente
+    await reloadWebApp();
     return true;
   }
 };

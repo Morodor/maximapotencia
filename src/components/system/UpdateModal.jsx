@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useApp } from '../../context/AppContext';
-import { CURRENT_APP_VERSION, DEFAULT_APK_URL, startNativeUpdate } from '../../utils/updateManager';
+import { CURRENT_APP_VERSION, DEFAULT_APK_URL, startNativeUpdate, reloadWebApp } from '../../utils/updateManager';
 import { 
   Rocket, 
   Download, 
@@ -20,6 +21,7 @@ export const UpdateModal = ({ isOpen, onClose }) => {
   const [downloadStats, setDownloadStats] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const isNative = Capacitor.isNativePlatform();
 
   if (!isOpen || !appUpdateInfo) return null;
 
@@ -27,6 +29,11 @@ export const UpdateModal = ({ isOpen, onClose }) => {
   const downloadUrl = appUpdateInfo.downloadUrl || DEFAULT_APK_URL;
 
   const handleStartUpdate = async () => {
+    if (!isNative) {
+      await reloadWebApp();
+      return;
+    }
+
     setIsDownloading(true);
     setProgressPercent(0);
     setErrorMessage('');
@@ -89,7 +96,7 @@ export const UpdateModal = ({ isOpen, onClose }) => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
-                Actualización Inmediata
+                {isNative ? 'Actualización Inmediata' : 'Nueva Versión Web'}
               </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
@@ -157,8 +164,17 @@ export const UpdateModal = ({ isOpen, onClose }) => {
               onClick={handleStartUpdate}
               className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-sm py-4 px-6 rounded-2xl shadow-xl shadow-red-950/60 transition-all active:scale-98"
             >
-              <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
-              <span>Actualizar Ahora (1 Clic)</span>
+              {isNative ? (
+                <>
+                  <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                  <span>Actualizar Ahora (1 Clic)</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 text-white" />
+                  <span>Recargar y Actualizar Web</span>
+                </>
+              )}
             </button>
           )}
 
